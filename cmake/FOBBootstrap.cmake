@@ -10,7 +10,7 @@ set(FOB_BOOTSTRAP_INCLUDED 1)
 
 cmake_minimum_required(VERSION 3.14)
 
-set(FOB_MODULE_DIR_URL https://raw.githubusercontent.com/misoboute/findorbuild/404786781d7a6db9a89c1cc26cd547283180c356/cmake)
+set(FOB_MODULE_DIR_URL https://raw.githubusercontent.com/misoboute/findorbuild/main/cmake)
 set(FOB_MODULE_DIR ${CMAKE_BINARY_DIR}/fob/cmake)
 
 # Downloads a file from the specified URL if it doesn't already exist at the
