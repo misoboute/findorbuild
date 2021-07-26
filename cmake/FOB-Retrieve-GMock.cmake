@@ -9,20 +9,14 @@ set(GTEST_VERSIONS
 )
 
 fob_set_default_var_value(FOB_REQUESTED_VERSION 1.11.0)
+fob_set_default_var_value(BUILD_SHARED_LIBS OFF)
+fob_set_default_var_value(gtest_force_shared_crt OFF)
 
 if(FOB_REQUESTED_VERSION IN_LIST GTEST_VERSIONS)
     set(VERSION_GIT_TAG release-${FOB_REQUESTED_VERSION})
 else()
     set(VERSION_GIT_TAG release-1.11.0)
 endif()
-
-sm_add_ext_cmake_project(
-    GMock
-    URL ${GTEST_URL}
-    SHA1 ${GTEST_SHA1}
-    PDB_INSTALL_DIR lib
-    EXTRA_CACHE_ARGS
-)
 
 fob_add_ext_cmake_project(
     FOB_GMock ${FOB_REQUESTED_VERSION}
@@ -32,11 +26,10 @@ fob_add_ext_cmake_project(
     GIT_PROGRESS true
     BUILD_DISTINGUISHING_VARS 
         BUILD_SHARED_LIBS
-        FOB_REQUESTED_VERSION
         gtest_force_shared_crt
     CMAKE_CACHE_ARGS
-        -DBUILD_SHARED_LIBS:BOOL=OFF
+        -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
         -DBUILD_EXAMPLES:BOOL=OFF
         -DBUILD_TESTING:BOOL=OFF
-        -Dgtest_force_shared_crt:BOOL=ON
+        -Dgtest_force_shared_crt:BOOL=${gtest_force_shared_crt}
 )

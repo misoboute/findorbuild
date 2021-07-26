@@ -8,27 +8,21 @@ if(FOB_BOOTSTRAP_INCLUDED)
 endif(FOB_BOOTSTRAP_INCLUDED)
 set(FOB_BOOTSTRAP_INCLUDED 1)
 
-cmake_minimum_required(3.14)
+cmake_minimum_required(VERSION 3.14)
 
-set(FOB_MODULE_DIR_URL https://raw.githubusercontent.com/misoboute/findorbuild/38bf1adaaff90cc81a06ed4b3ee1e07cfca0f225/cmake)
+set(FOB_MODULE_DIR_URL https://raw.githubusercontent.com/misoboute/findorbuild/404786781d7a6db9a89c1cc26cd547283180c356/cmake)
 set(FOB_MODULE_DIR ${CMAKE_BINARY_DIR}/fob/cmake)
 
 # Downloads a file from the specified URL if it doesn't already exist at the
 # specified local path or if the hash of the existing local file is different 
 # from the expected hash. On download failure, it issues an author warning.
-function(_fob_download_if_different URL LOCAL_PATH SHA256_HASH)
-    set(DOWNLOAD_NEEDED TRUE)
-    if(EXISTS ${LOCAL_PATH})
-        file(HASH ${LOCAL_PATH} EXISTING_FILE_HASH)
-        if (EXISTING_FILE_HASH STREQUAL SHA256_HASH)
-            set(DOWNLOAD_NEEDED FALSE)
-        endif()
-    endif()
 
-    if(DOWNLOAD_NEEDED)
-        file(DOWNLOAD ${URL} ${LOCAL_PATH} STATUS DL_STAT
-            EXPECTED_HASH SHA256=${SHA256_HASH})
-
+function(_download_fob_module_if_not_exists MOD_NAME)
+    set(URL ${FOB_MODULE_DIR_URL}/${MOD_NAME}.cmake)
+    set(LOCAL_PATH ${FOB_MODULE_DIR}/${MOD_NAME}.cmake)
+    
+    if(NOT EXISTS ${LOCAL_PATH})
+        file(DOWNLOAD ${URL} ${LOCAL_PATH} STATUS DL_STAT)
         list(POP_FRONT DL_STAT ERRNO)
         if(ERRNO)
             list(POP_FRONT DL_STAT MSG)
@@ -36,31 +30,12 @@ function(_fob_download_if_different URL LOCAL_PATH SHA256_HASH)
                 "Failed to download from ${URL} to ${LOCAL_PATH} => ${MSG}")
         endif()
     endif()
-endfunction(_fob_download_if_different)
+endfunction(_download_fob_module_if_not_exists)
 
-_fob_download_if_different(
-    ${FOB_MODULE_FILE_URL} ${FOB_MODULE_FILE_PATH} ${FOB_MODULE_FILE_HASH})
+_download_fob_module_if_not_exists(CommonUtils) 
+_download_fob_module_if_not_exists(FindOrBuild) 
+_download_fob_module_if_not_exists(PackageUtils) 
 
-_fob_download_if_different(
-    ${FOB_MODULE_DIR_URL}/CommonUtils.cmake
-    ${FOB_MODULE_DIR}/CommonUtils.cmake
-) 
-
-_fob_download_if_different(
-    ${FOB_MODULE_DIR_URL}/FindUtils.cmake
-    ${FOB_MODULE_DIR}/FindUtils.cmake
-) 
-
-_fob_download_if_different(
-    ${FOB_MODULE_DIR_URL}/FindOrBuild.cmake
-    ${FOB_MODULE_DIR}/FindOrBuild.cmake
-) 
-
-_fob_download_if_different(
-    ${FOB_MODULE_DIR_URL}/PackageUtils.cmake
-    ${FOB_MODULE_DIR}/PackageUtils.cmake
-) 
-
-if(EXISTS ${FOB_MODULE_DIR_URL}/FindOrBuild.cmake)
-    include(${FOB_MODULE_DIR_URL}/FindOrBuild.cmake)
+if(EXISTS ${FOB_MODULE_DIR}/FindOrBuild.cmake)
+    include(${FOB_MODULE_DIR}/FindOrBuild.cmake)
 endif()

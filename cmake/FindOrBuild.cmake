@@ -3,11 +3,14 @@ if(FOB_FIND_OR_BUILD_INCLUDED)
 endif(FOB_FIND_OR_BUILD_INCLUDED)
 set(FOB_FIND_OR_BUILD_INCLUDED 1)
 
-if (UNIX)
-    file(TO_CMAKE_PATH "$ENV{HOME}" FOB_USER_HOME_DIR)    
-elseif(WIN32)
-    file(TO_CMAKE_PATH "$ENV{HOMEDRIVE}$ENV{HOMEPATH}" FOB_USER_HOME_DIR)    
-endif()
+function(fob_get_home_dir HOME_VAR)
+    if (UNIX)
+        file(TO_CMAKE_PATH "$ENV{HOME}" HOME)    
+    elseif(WIN32)
+        file(TO_CMAKE_PATH "$ENV{HOMEDRIVE}$ENV{HOMEPATH}" HOME)
+    endif()
+    set(${HOME_VAR} ${HOME} PARENT_SCOPE)
+endfunction(fob_get_home_dir)
 
 set(FOB_USE_SYSTEM_PACKAGES_OPTION LAST CACHE STRING 
     "Determines the default value for the USE_SYSTEM_PACKAGES parameter \
@@ -34,29 +37,7 @@ option(FOB_ENABLE_PACKAGE_RETRIEVE
 are not found in system packages or those previously built and installed by us"
     TRUE)
 
-function(_download_fob_module_if_not_exists MOD_NAME)
-    set(URL ${FOB_MODULE_DIR_URL}/${MOD_NAME}.cmake)
-    set(LOCAL_PATH ${FOB_MODULE_DIR}/${MOD_NAME}.cmake)
-    
-    if(NOT EXISTS ${LOCAL_PATH})
-        file(DOWNLOAD ${URL} ${LOCAL_PATH} STATUS DL_STAT)
-        list(POP_FRONT DL_STAT ERRNO)
-        if(ERRNO)
-            list(POP_FRONT DL_STAT MSG)
-            message(AUTHOR_WARNING
-                "Failed to download from ${URL} to ${LOCAL_PATH} => ${MSG}")
-        endif()
-    endif()
-endfunction(_download_fob_module_if_not_exists)
-
-include(${FOB_MODULE_DIR}/FindUtils.cmake)
-
-function(_get_build_config_hash HASH_VAR)
-    _get_build_config_description(DESC)
-    string(MD5 HASH ${DESC})
-    string(SUBSTRING ${HASH} 0 10 HASH)
-    set(${HASH_VAR} ${HASH} PARENT_SCOPE)
-endfunction(_get_build_config_hash)
+include(${FOB_MODULE_DIR}/CommonUtils.cmake)
 
 function(_does_cfg_dir_match_args OUT_VAR CFG_DIR CFG_ARGS)
     file(STRINGS ${CFG_DIR}/BuildConfigDesc.txt CONFIG_DESC)
@@ -90,7 +71,7 @@ function(_get_all_paths_for_package_in_fob_storage PACKAGE_NAME PATHS_VAR)
     set(OPTIONS)
     set(SINGLE_VAL)
     set(MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(ARG
+    cmake_parse_arguments(
         ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
 
     set(PKG_ROOT ${FOB_STORAGE_ROOT}/${PACKAGE_NAME})
@@ -135,7 +116,7 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     find_package("${FIND_ARGS}" NO_DEFAULT_PATH PATHS ${PKG_PATHS})
     fob_pop_var(CMAKE_FIND_FRAMEWORK)
     fob_pop_var(CMAKE_FIND_APPBUNDLE)
-endmacro(_fob_find_package_sys_only)
+endmacro(_fob_find_package_ours_only)
 
 macro(_fob_find_package_first_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
     if (${USE_SYS_PACKAGES} STREQUAL FIRST OR 
@@ -305,11 +286,11 @@ function(_fob_include_and_build_in_cmake_time)
     set(OPTIONS)
     set(SINGLE_VAL PROJ_NAME PROJ_PATH)
     set(MULTI_VAL MODULES TARGETS CACHE_ARGS)
-    cmake_parse_arguments(ARG
+    cmake_parse_arguments(
         ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
 
     if(ARG_PROJ_NAME)
-        set(PROJECT_LINE "project(${ARG_PROJ_NAME})\n")
+        set(PROJECT_LINE "project(${ARG_PROJ_NAME})")
     endif(ARG_PROJ_NAME)
 
     if(NOT ARG_MODULES)
@@ -321,9 +302,10 @@ function(_fob_include_and_build_in_cmake_time)
     endif()
 
     set(LIST_FILE_CONTENTS
-"cmake_minimum_required(${CMAKE_MINIMUM_REQUIRED_VERSION})
+"cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
+${PROJECT_LINE}
 set(CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
-include(${FOB_MODULE_DIR}/PackageUtils.cmake)
+include(\${FOB_MODULE_DIR}/PackageUtils.cmake)
 foreach(MOD ${MODULES_SPACE_SEP})
     include(\${MOD})
 endforeach(MOD)
@@ -337,8 +319,8 @@ endforeach(MOD)
     _fob_convert_cmdln_cache_args_to_cache_preloader(
         ${ARG_PROJ_PATH}/InitCache.txt "${ARG_CACHE_ARGS}")
 
-    set(_config_command
-        ${CMAKE_COMMAND} -C InitCache.txt -G "${CMAKE_GENERATOR}"
+    set(_config_command ${CMAKE_COMMAND} 
+        -C ${ARG_PROJ_PATH}/InitCache.txt -G "${CMAKE_GENERATOR}"
         -S ${ARG_PROJ_PATH} -B ${ARG_PROJ_PATH}/build
     )
 
@@ -350,14 +332,15 @@ endforeach(MOD)
     endif(CMAKE_GENERATOR_PLATFORM)
 
     execute_process(COMMAND ${_config_command})
+    set(BUILD_DIR ${ARG_PROJ_PATH}/build)
 
     if(ARG_TARGETS)
         foreach(TGT ${ARG_TARGETS})
             execute_process(COMMAND ${CMAKE_COMMAND}
-                --build ${ARG_PROJ_PATH} --target ${TGT})
+                --build ${BUILD_DIR} --target ${TGT})
         endforeach(TGT)
     else(ARG_TARGETS)
-        execute_process(COMMAND ${CMAKE_COMMAND} --build ${ARG_PROJ_PATH})
+        execute_process(COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR})
     endif(ARG_TARGETS)
 endfunction(_fob_include_and_build_in_cmake_time)
 
@@ -383,7 +366,7 @@ function(_fob_download_build_install_package PACKAGE_NAME)
         set(REQUESTED_CFG_ARGS_SETTING
             "-DREQUESTED_CFG_ARGS:STRING=${REQUESTED_CFG_ARGS}")
     else ()
-        set(REQUESTED_VER_CACHE_SETTING)
+        set(REQUESTED_CFG_ARGS_SETTING)
     endif ()
 
     _download_fob_module_if_not_exists(FOB-Retrieve-${PACKAGE_NAME})
@@ -393,6 +376,7 @@ function(_fob_download_build_install_package PACKAGE_NAME)
         MODULES FOB-Retrieve-${PACKAGE_NAME}
         PROJ_PATH ${EXT_PROJ_PATH}
         CACHE_ARGS
+            -DFOB_MODULE_DIR=${FOB_MODULE_DIR}
             -DFOB_STORAGE_ROOT=${FOB_STORAGE_ROOT}
             "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
             "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"

@@ -4,6 +4,7 @@ endif(FOB_PACKAGE_UTILS_INCLUDED)
 set(FOB_PACKAGE_UTILS_INCLUDED 1)
 
 include(${FOB_MODULE_DIR}/CommonUtils.cmake)
+include(ExternalProject)
 
 function(_calc_build_config_desc DESC_VAR BUILD_DISTINGUISHING_VARS)
     list(APPEND BUILD_DISTINGUISHING_VARS
@@ -23,17 +24,18 @@ function(_calc_build_config_desc DESC_VAR BUILD_DISTINGUISHING_VARS)
     endforeach(VAR)
 
     set(${DESC_VAR} ${DESC} PARENT_SCOPE)
+    message("DESC: ${DESC}")
 endfunction(_calc_build_config_desc)
 
 function(_calc_build_config_id CFG_ID_VAR BUILD_DISTINGUISHING_VARS)
-    _calc_build_config_desc(CFG_DESC ${BUILD_DISTINGUISHING_VARS})
-    string(MD5 HASH ${DESC})
+    _calc_build_config_desc(CFG_DESC "${BUILD_DISTINGUISHING_VARS}")
+    string(MD5 HASH ${CFG_DESC})
     string(SUBSTRING ${HASH} 0 10 HASH)
     set(${CFG_ID_VAR} ${HASH} PARENT_SCOPE)
 endfunction(_calc_build_config_id)
 
 function(_write_build_config_desc_file CFG_DIR BUILD_DISTINGUISHING_VARS)
-    _calc_build_config_desc(CFG_DESC ${BUILD_DISTINGUISHING_VARS})
+    _calc_build_config_desc(CFG_DESC "${BUILD_DISTINGUISHING_VARS}")
     string(PREPEND CFG_DESC
 "Build system  and package build configuration:
 ===============================================\n")
@@ -106,7 +108,17 @@ function(fob_add_ext_cmake_project NAME VERSION)
         ${ARG_UNPARSED_ARGUMENTS}
     )
 
-    foreach(CFG ${CMAKE_CONFIGURATION_TYPES})
+    if(NOT CMAKE_CONFIGURATION_TYPES)
+        if(NOT CMAKE_BUILD_TYPE)
+            set(OPT_CFG_TYPES Release)
+        else()
+            set(OPT_CFG_TYPES ${CMAKE_BUILD_TYPE})
+        endif()
+    else()
+        set(OPT_CFG_TYPES ${CMAKE_CONFIGURATION_TYPES})
+    endif()
+
+    foreach(CFG ${OPT_CFG_TYPES})
         ExternalProject_Add_Step(${NAME} build_${CFG}
             COMMENT "Building ${NAME} - ${CFG}"
             COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CFG}
@@ -122,16 +134,16 @@ function(fob_add_ext_cmake_project NAME VERSION)
         )
     endforeach(CFG)
 
-    if (MSVC AND ARG_PDB_INSTALL_DIR)
+    if(MSVC AND ARG_PDB_INSTALL_DIR)
         if(NOT IS_ABSOLUTE ${ARG_PDB_INSTALL_DIR})
             set(ARG_PDB_INSTALL_DIR <INSTALL_DIR>/${ARG_PDB_INSTALL_DIR})
         endif()
-        ExternalProject_Add_Step(${ARG_PDB_INSTALL_DIR} install_pdbs
+        ExternalProject_Add_Step(${NAME} install_pdbs
             COMMENT "Installing ${NAME} debug PDBs"
             COMMAND ${CMAKE_COMMAND} -E
                 copy_directory ${PDB_OUT_DIR} ${ARG_PDB_INSTALL_DIR}
             DEPENDEES build
             DEPENDERS install
         )
-    endif (MSVC AND ARG_PDB_INSTALL_DIR)
+    endif()
 endfunction(fob_add_ext_cmake_project)
