@@ -19,7 +19,7 @@ else()
 endif()
 
 fob_add_ext_cmake_project(
-    FOB_GMock ${FOB_REQUESTED_VERSION}
+    GMock ${FOB_REQUESTED_VERSION}
     GIT_REPOSITORY https://github.com/google/googletest
     GIT_TAG ${VERSION_GIT_TAG}
     GIT_SHALLOW true

@@ -78,6 +78,7 @@ function(_get_all_paths_for_package_in_fob_storage PACKAGE_NAME PATHS_VAR)
     file(GLOB VERSION_DIRS LIST_DIRECTORIES true ${PKG_ROOT}/*)
     list(TRANSFORM VERSION_DIRS APPEND /*)
     file(GLOB CONFIG_DIRS LIST_DIRECTORIES true ${VERSION_DIRS})
+    list(FILTER CONFIG_DIRS EXCLUDE REGEX "(download|src)")
     if(CFG_ARGS)
         set(MATCHING_CFG_DIRS)
         foreach(CFG_DIR ${CONFIG_DIRS})
@@ -111,9 +112,13 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     fob_push_var(CMAKE_FIND_APPBUNDLE)
     set(CMAKE_FIND_FRAMEWORK LAST)
     set(CMAKE_FIND_APPBUNDLE LAST)
+    
     _get_all_paths_for_package_in_fob_storage(
         ${PACKAGE_NAME} PKG_PATHS ${_FOB_CFG_ARGS_SETTING})
-    find_package("${FIND_ARGS}" NO_DEFAULT_PATH PATHS ${PKG_PATHS})
+    
+    find_package(${PACKAGE_NAME}
+        ${FIND_ARGS} NO_DEFAULT_PATH PATHS ${PKG_PATHS})
+    
     fob_pop_var(CMAKE_FIND_FRAMEWORK)
     fob_pop_var(CMAKE_FIND_APPBUNDLE)
 endmacro(_fob_find_package_ours_only)
@@ -121,8 +126,8 @@ endmacro(_fob_find_package_ours_only)
 macro(_fob_find_package_first_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
     if (${USE_SYS_PACKAGES} STREQUAL FIRST OR 
             ${USE_SYS_PACKAGES} STREQUAL ALWAYS)
-        find_package(${PACKAGE_NAME} "${FIND_ARGS}")
-    else ()
+        find_package(${PACKAGE_NAME} ${FIND_ARGS})
+    else()
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
     endif()
 endmacro(_fob_find_package_first_attempt)
@@ -130,28 +135,11 @@ endmacro(_fob_find_package_first_attempt)
 macro(_fob_find_package_second_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
     if (${USE_SYS_PACKAGES} STREQUAL LAST OR 
             ${USE_SYS_PACKAGES} STREQUAL ALWAYS)
-        find_package(${PACKAGE_NAME} "${FIND_ARGS}")
-    else ()
+        find_package(${PACKAGE_NAME} ${FIND_ARGS})
+    else()
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
     endif()
 endmacro(_fob_find_package_second_attempt)
-
-macro(_fob_find_in_existing_packages USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
-    # First we need to see if the package can be found, so if a REQUIRED clause
-    # is present, we remove it for the time being so the call doesn't fail.
-    set(_FOB_MODIFIED_ARGS ${FIND_ARGS})
-    if (NOT ${USE_SYS_PACKAGES} STREQUAL ALWAYS AND FOB_ENABLE_PACKAGE_RETRIEVE)
-        list(REMOVE_ITEM _FOB_MODIFIED_ARGS REQUIRED)
-    endif()
-    
-    _fob_find_package_first_attempt(
-        ${USE_SYS_PACKAGES} ${PACKAGE_NAME} "${_FOB_MODIFIED_ARGS}")
-
-    if (${USE_SYS_PACKAGES} STREQUAL FIRST OR ${USE_SYS_PACKAGES} STREQUAL LAST)
-        _fob_find_package_second_attempt(
-            ${USE_SYS_PACKAGES} ${PACKAGE_NAME} "${_FOB_MODIFIED_ARGS}")
-    endif()    
-endmacro(_fob_find_in_existing_packages)
 
 function(_fob_is_package_found PACKAGE_NAME OUTPUT_VAR)
     # Some CMake find modules set the <UPPERCASE_PACKAGE_NAME>_FOUND variable
@@ -163,6 +151,27 @@ function(_fob_is_package_found PACKAGE_NAME OUTPUT_VAR)
         set(${OUTPUT_VAR} FALSE PARENT_SCOPE)
     endif()
 endfunction(_fob_is_package_found)
+
+macro(_fob_find_in_existing_packages USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
+    # First we need to see if the package can be found, so if a REQUIRED clause
+    # is present, we remove it for the time being so the call doesn't fail.
+    set(_FOB_MODIFIED_ARGS ${FIND_ARGS})
+    if (NOT ${USE_SYS_PACKAGES} STREQUAL ALWAYS AND FOB_ENABLE_PACKAGE_RETRIEVE)
+        list(REMOVE_ITEM _FOB_MODIFIED_ARGS REQUIRED)
+    endif()
+    
+    _fob_find_package_first_attempt(
+        ${USE_SYS_PACKAGES} ${PACKAGE_NAME} "${_FOB_MODIFIED_ARGS}")
+    
+    _fob_is_package_found(${PACKAGE_NAME} _FOB_PKG_FOUND)
+
+    if(NOT _FOB_PKG_FOUND AND 
+        (${USE_SYS_PACKAGES} STREQUAL FIRST 
+            OR ${USE_SYS_PACKAGES} STREQUAL LAST))
+        _fob_find_package_second_attempt(
+            ${USE_SYS_PACKAGES} ${PACKAGE_NAME} "${_FOB_MODIFIED_ARGS}")
+    endif()    
+endmacro(_fob_find_in_existing_packages)
 
 # Use this function to convert a list of command line style cache initializers
 # to a cache preloader script that can be passed to cmake command.
@@ -425,6 +434,6 @@ macro(fob_find_or_build PACKAGE_NAME)
             ${PACKAGE_NAME} ${_FOB_CFG_ARGS_SETTING})
 
         _fob_find_in_existing_packages(NEVER ${PACKAGE_NAME}
-            ${_FOB_CFG_ARGS_SETTING} "${_FOBARG_UNPARSED_ARGUMENTS}")
+            "${_FOB_CFG_ARGS_SETTING}" "${_FOBARG_UNPARSED_ARGUMENTS}")
     endif()
 endmacro(fob_find_or_build)

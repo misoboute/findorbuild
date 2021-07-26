@@ -83,7 +83,7 @@ function(fob_add_ext_cmake_project NAME VERSION)
     )
 
     ExternalProject_Add(
-        ${NAME}
+        FOB_${NAME}
         DOWNLOAD_DIR ${DOWNLOAD_DIR}
         SOURCE_DIR ${SOURCE_DIR}
         BINARY_DIR ${BINARY_DIR}
@@ -119,13 +119,13 @@ function(fob_add_ext_cmake_project NAME VERSION)
     endif()
 
     foreach(CFG ${OPT_CFG_TYPES})
-        ExternalProject_Add_Step(${NAME} build_${CFG}
+        ExternalProject_Add_Step(FOB_${NAME} build_${CFG}
             COMMENT "Building ${NAME} - ${CFG}"
             COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CFG}
             DEPENDEES configure
             DEPENDERS build
         )
-        ExternalProject_Add_Step(${NAME} install_${CFG}
+        ExternalProject_Add_Step(FOB_${NAME} install_${CFG}
             COMMENT "Installing ${NAME} - ${CFG}"
             COMMAND ${CMAKE_COMMAND}
                 --build <BINARY_DIR> --target install --config ${CFG}
@@ -138,7 +138,7 @@ function(fob_add_ext_cmake_project NAME VERSION)
         if(NOT IS_ABSOLUTE ${ARG_PDB_INSTALL_DIR})
             set(ARG_PDB_INSTALL_DIR <INSTALL_DIR>/${ARG_PDB_INSTALL_DIR})
         endif()
-        ExternalProject_Add_Step(${NAME} install_pdbs
+        ExternalProject_Add_Step(FOB_${NAME} install_pdbs
             COMMENT "Installing ${NAME} debug PDBs"
             COMMAND ${CMAKE_COMMAND} -E
                 copy_directory ${PDB_OUT_DIR} ${ARG_PDB_INSTALL_DIR}
