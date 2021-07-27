@@ -24,7 +24,6 @@ function(_calc_build_config_desc DESC_VAR BUILD_DISTINGUISHING_VARS)
     endforeach(VAR)
 
     set(${DESC_VAR} ${DESC} PARENT_SCOPE)
-    message("DESC: ${DESC}")
 endfunction(_calc_build_config_desc)
 
 function(_calc_build_config_id CFG_ID_VAR BUILD_DISTINGUISHING_VARS)
@@ -44,7 +43,7 @@ endfunction(_write_build_config_desc_file)
 
 function(fob_add_ext_cmake_project NAME VERSION)
     set(OPTIONS)
-    set(SINGLE_VAL PDB_INSTALL_DIR)
+    set(SINGLE_VAL PDB_INSTALL_DIR CONFIG_FILE_INSTALL_DIR)
     set(MULTI_VAL CMAKE_ARGS CMAKE_CACHE_ARGS CMAKE_CACHE_DEFAULT_ARGS 
         BUILD_DISTINGUISHING_VARS)
     cmake_parse_arguments(

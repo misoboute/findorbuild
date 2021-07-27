@@ -353,6 +353,14 @@ endforeach(MOD)
     endif(ARG_TARGETS)
 endfunction(_fob_include_and_build_in_cmake_time)
 
+function(_fob_is_valid_version OUT_IS_VERSION IN_STRING)
+    if(IN_STRING MATCHES [[[0-9]+(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?]])
+        set(${OUT_IS_VERSION} ${IN_STRING} PARENT_SCOPE)
+    else()
+        unset(${OUT_IS_VERSION} PARENT_SCOPE)
+    endif()
+endfunction(_fob_is_valid_version)
+
 function(_fob_download_build_install_package PACKAGE_NAME)
     set(OPTIONS)
     set(SINGLE_VAL)
@@ -362,21 +370,24 @@ function(_fob_download_build_install_package PACKAGE_NAME)
 
     set(EXT_PROJ_PATH ${CMAKE_BINARY_DIR}/fob/ExtProj/${PACKAGE_NAME})
     file(REMOVE_RECURSE ${EXT_PROJ_PATH})
+    
+    if(ARG_UNPARSED_ARGUMENTS)
+        list(GET ARG_UNPARSED_ARGUMENTS 0 FIND_PKG_VER_ARG)
+        _fob_is_valid_version(FIND_PKG_VER_ARG ${FIND_PKG_VER_ARG})
+        if(FIND_PKG_VER_ARG VERSION_GREATER 0)
+            set(REQUESTED_VER_CACHE_SETTING
+                "-DFOB_REQUESTED_VERSION:STRING=${FIND_PKG_VER_ARG}")
+        else()
+            set(REQUESTED_VER_CACHE_SETTING)
+        endif()
+    endif()
 
-    list(GET ARG_UNPARSED_ARGUMENTS 0 FIND_PKG_VER_ARG)
-    if (FIND_PKG_VER_ARG VERSION_GREATER 0)
-        set(REQUESTED_VER_CACHE_SETTING
-            "-DFOB_REQUESTED_VERSION:STRING=${FIND_PKG_VER_ARG}")
-    else ()
-        set(REQUESTED_VER_CACHE_SETTING)
-    endif ()
-
-    if (ARG_CFG_ARGS)
+    if(ARG_CFG_ARGS)
         set(REQUESTED_CFG_ARGS_SETTING
             "-DREQUESTED_CFG_ARGS:STRING=${REQUESTED_CFG_ARGS}")
-    else ()
+    else()
         set(REQUESTED_CFG_ARGS_SETTING)
-    endif ()
+    endif()
 
     _download_fob_module_if_not_exists(FOB-Retrieve-${PACKAGE_NAME})
 
@@ -414,6 +425,14 @@ macro(fob_find_or_build PACKAGE_NAME)
         set(_FOBARG_USE_SYSTEM_PACKAGES NEVER)
     endif()
 
+    if(_FOBARG_UNPARSED_ARGUMENTS)
+        list(GET _FOBARG_UNPARSED_ARGUMENTS 0 _FOB_FIND_PKG_VER_ARG)
+        _fob_is_valid_version(
+            _FOB_FIND_PKG_VER_ARG ${_FOB_FIND_PKG_VER_ARG})
+    else()
+        set(_FOB_FIND_PKG_VER_ARG)
+    endif()
+
     fob_set_default_var_value(
         _FOBARG_USE_SYSTEM_PACKAGES ${FOB_USE_SYSTEM_PACKAGES_OPTION})
 
@@ -429,9 +448,9 @@ macro(fob_find_or_build PACKAGE_NAME)
         else ()
             unset(_FOB_CFG_ARGS_SETTING)
         endif ()
-
+    
         _fob_download_build_install_package(
-            ${PACKAGE_NAME} ${_FOB_CFG_ARGS_SETTING})
+            ${PACKAGE_NAME} ${_FOB_FIND_PKG_VER_ARG} ${_FOB_CFG_ARGS_SETTING})
 
         _fob_find_in_existing_packages(NEVER ${PACKAGE_NAME}
             "${_FOB_CFG_ARGS_SETTING}" "${_FOBARG_UNPARSED_ARGUMENTS}")
