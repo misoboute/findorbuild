@@ -8,7 +8,7 @@ if(FOB_BOOTSTRAP_INCLUDED)
 endif(FOB_BOOTSTRAP_INCLUDED)
 set(FOB_BOOTSTRAP_INCLUDED 1)
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15)
 
 set(FOB_MODULE_DIR_URL https://raw.githubusercontent.com/misoboute/findorbuild/main/cmake)
 set(FOB_MODULE_DIR ${CMAKE_BINARY_DIR}/fob/cmake)

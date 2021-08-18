@@ -12,11 +12,9 @@ fob_set_default_var_value(FOB_REQUESTED_VERSION 1.11.0)
 fob_set_default_var_value(BUILD_SHARED_LIBS OFF)
 fob_set_default_var_value(gtest_force_shared_crt OFF)
 
-string(REGEX REPLACE "\\." ";" VERSION_PARTS ${FOB_REQUESTED_VERSION})
-list(LENGTH VERSION_PARTS COUNT_VERSION_PARTS)
-if(COUNT_VERSION_PARTS LESS 3)
-    string(APPEND FOB_REQUESTED_VERSION ".0")
-endif()
+fob_normalize_version_number(FOB_REQUESTED_VERSION)
+string(REGEX REPLACE "\\.[0-9]$" "" 
+    FOB_REQUESTED_VERSION ${FOB_REQUESTED_VERSION})
 
 if(FOB_REQUESTED_VERSION IN_LIST GTEST_VERSIONS)
     set(VERSION_GIT_TAG release-${FOB_REQUESTED_VERSION})

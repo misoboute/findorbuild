@@ -41,6 +41,15 @@ function(_write_build_config_desc_file CFG_DIR BUILD_DISTINGUISHING_VARS)
     file(WRITE ${CFG_DIR}/BuildConfigDesc.txt ${CFG_DESC})
 endfunction(_write_build_config_desc_file)
 
+function(fob_normalize_version_number VERSION_VAR)
+    set(VERSION ${${VERSION_VAR}});
+    string(REPLACE "." ";" VERSION_PARTS ${VERSION})
+    list(LENGTH VERSION_PARTS COUNT_VERSION_PARTS)
+    math(EXPR COUNT_MISSING_VER_PARTS "4 - ${COUNT_VERSION_PARTS}")
+    string(REPEAT ".0" ${COUNT_MISSING_VER_PARTS} MISSING_VER_PARTS)
+    set(${VERSION_VAR} "${VERSION}${MISSING_VER_PARTS}" PARENT_SCOPE)
+endfunction(fob_normalize_version_number)
+
 function(fob_add_ext_cmake_project NAME VERSION)
     set(OPTIONS)
     set(SINGLE_VAL PDB_INSTALL_DIR CONFIG_FILE_INSTALL_DIR)
@@ -50,6 +59,7 @@ function(fob_add_ext_cmake_project NAME VERSION)
         ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
         
     _calc_build_config_id(CFG_ID "${ARG_BUILD_DISTINGUISHING_VARS}")
+    fob_normalize_version_number(VERSION)
 
     set(BASE_DIR ${FOB_STORAGE_ROOT}/${NAME}/${VERSION})
     set(CFG_DIR ${BASE_DIR}/${CFG_ID})
