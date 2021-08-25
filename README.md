@@ -159,5 +159,5 @@ the FOB repository.
 
 # Contribute/Contact
 If you want to add retrieve modules or make improvements, pull requests are 
-welcome! Also feel free to [write to me](maitlo:misoboute@gmail.com) so I'll 
+welcome! Also feel free to [write to me](mailto:misoboute@gmail.com) so I'll 
 grant you the needed permissions.
