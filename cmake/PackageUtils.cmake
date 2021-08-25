@@ -42,7 +42,7 @@ function(_write_build_config_desc_file CFG_DIR BUILD_DISTINGUISHING_VARS)
 endfunction(_write_build_config_desc_file)
 
 function(fob_normalize_version_number VERSION_VAR)
-    set(VERSION ${${VERSION_VAR}});
+    set(VERSION ${${VERSION_VAR}})
     string(REPLACE "." ";" VERSION_PARTS ${VERSION})
     list(LENGTH VERSION_PARTS COUNT_VERSION_PARTS)
     math(EXPR COUNT_MISSING_VER_PARTS "4 - ${COUNT_VERSION_PARTS}")

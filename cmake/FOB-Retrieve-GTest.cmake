@@ -1,7 +1,7 @@
-if(FOB_RETRIEVE_GMOCK_INCLUDED)
+if(FOB_RETRIEVE_GTEST_INCLUDED)
     return()
-endif(FOB_RETRIEVE_GMOCK_INCLUDED)
-set(FOB_RETRIEVE_GMOCK_INCLUDED 1)
+endif(FOB_RETRIEVE_GTEST_INCLUDED)
+set(FOB_RETRIEVE_GTEST_INCLUDED 1)
 
 set(GTEST_VERSIONS 
     "1.0.0" "1.0.1" "1.1.0" "1.2.0" "1.2.1" "1.3.0" "1.4.0" "1.5.0"
@@ -23,7 +23,7 @@ else()
 endif()
 
 fob_add_ext_cmake_project(
-    GMock ${FOB_REQUESTED_VERSION}
+    GTest ${FOB_REQUESTED_VERSION}
     GIT_REPOSITORY https://github.com/google/googletest
     GIT_TAG ${VERSION_GIT_TAG}
     GIT_SHALLOW true
