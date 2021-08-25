@@ -15,10 +15,8 @@ set(FOB_MODULE_DIR_URL
 
 set(FOB_MODULE_DIR ${CMAKE_BINARY_DIR}/fob/cmake)
 
-# Downloads a file from the specified URL if it doesn't already exist at the
-# specified local path or if the hash of the existing local file is different 
-# from the expected hash. On download failure, it issues an author warning.
-
+# Downloads a FOB module from the upstream repository if it hasn't already 
+# been downloaded.
 function(_download_fob_module_if_not_exists MOD_NAME)
     set(URL ${FOB_MODULE_DIR_URL}/${MOD_NAME}.cmake)
     set(LOCAL_PATH ${FOB_MODULE_DIR}/${MOD_NAME}.cmake)

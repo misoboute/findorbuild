@@ -1,8 +1,19 @@
+# This module is the main module of FindOrBuild that defines the 
+# find_or_build macro. The find_or_build macro is the central element of 
+# this module and is used instead of the native find_package with a similar syntax.
+# Refer to find_or_build documentation for more information.
+
+# Note: Macros, functions, and variables whose names begin with a single
+# underscore are intended for internal module usage. Only use the macros and
+# functions that begin with fob_ or variables that begin with FOB_ (without a
+# leading underscore).
+
 if(FOB_FIND_OR_BUILD_INCLUDED)
     return()
 endif(FOB_FIND_OR_BUILD_INCLUDED)
 set(FOB_FIND_OR_BUILD_INCLUDED 1)
 
+# Get the path to the home directory of the user running cmake.
 function(fob_get_home_dir HOME_VAR)
     if (UNIX)
         file(TO_CMAKE_PATH "$ENV{HOME}" HOME)    
@@ -408,12 +419,53 @@ function(_fob_download_build_install_package PACKAGE_NAME)
     )
 endfunction(_fob_download_build_install_package)
 
-# We shall use this macro to find a package instead of plain find_package.
-# Its syntax is identical to that of find_package.
-# It calls the find_package and if the package cannot be found, or if the
-# found package include directories are not in the SMUtil third party
-# install directory, it includes the relevant module for downloading, building,
-# and installing of the package.
+# Use the `fob_find_or_build` macro to find a package instead of the native 
+# cmake `find_package`.
+# Its syntax is similar to that of `find_package`. In fact all the arguments 
+# passed to this macro, except those that are used by the macro itself, are
+# forwarded to the `find_package` when looking for packages.
+
+# It tries to find the package (using native `find_package`) within existing 
+# packages (both within those provided by the system and within those
+# previously built by `FindOrBuild`) and, if the package cannot be found,
+# it tries to retrieve and build the the package of interest, and then calls 
+# the `find_package` again to find the built package.
+
+# The order of searching within the system-provided and FOB-built packages
+# is determined by the value of the `USE_SYSTEM_PACKAGES` parameter whose default
+# value comes from the `FOB_USE_SYSTEM_PACKAGES_OPTION` cache variable.
+# The possible options are:
+#   `ALWAYS`: Only search within the system-provided packages and, if not found,
+#       do _NOT_ retrieve and build the package.
+#   `FIRST`: First search within the system-provided, then within the FOB-built
+#       packages and, if not found, retrieve and build the package.
+#   `LAST`: First search within the the FOB-built, then within system-provided
+#       packages and, if not found, retrieve and build the package.
+#   `NEVER`: Only search within the FOB-built packages and, if not found,
+#       retrieve and build the package.
+
+# If you want to use the package built with a specific set of cache arguments,
+# pass those argument settings using the parameter `CFG_ARGS`
+# using the syntax `CFG_ARGS -DARGUMENT1=VALUE1 -DARGUMENT2=VALUE2 ...`
+# Including the `CFG_ARGS` argument implies and overrides the value of `NEVER` for 
+# `USE_SYSTEM_PACKAGES` because configuration arguments can only be tracked for 
+# packages built by FOB.
+
+# Sample:
+# ```cmake
+# fob_find_or_build(GTest 1.10 REQUIRED
+#     CFG_ARGS
+#         -DBUILD_SHARED_LIBS=true
+#         -Dgtest_force_shared_crt=true
+# )
+# ```
+
+# The above call will look for the GTest package version 1.10 (or 1.10.0) 
+# within the packages previously built by FindOrBuild using the 
+# cache arguments `-DBUILD_SHARED_LIBS=true;-Dgtest_force_shared_crt=true`.
+# If the package with the given specification is not found, it will try to 
+# download, build, install, and find the package. The `REQUIRED` argument will be 
+# passed to the final `find_package` after the package is built.
 macro(fob_find_or_build PACKAGE_NAME)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL USE_SYSTEM_PACKAGES)
@@ -440,7 +492,9 @@ macro(fob_find_or_build PACKAGE_NAME)
         ${PACKAGE_NAME} "${_FOBARG_UNPARSED_ARGUMENTS}")
     
     _fob_is_package_found(${PACKAGE_NAME} _FOB_PACKAGE_FOUND)
-    if(NOT _FOB_PACKAGE_FOUND)
+    if(NOT _FOB_PACKAGE_FOUND AND 
+        NOT _FOBARG_USE_SYSTEM_PACKAGES STREQUAL ALWAYS
+        AND FOB_ENABLE_PACKAGE_RETRIEVE)
         message(STATUS "Unable to find ${PACKAGE_NAME}: Trying to build ...")
 
         if (_FOBARG_CFG_ARGS)
