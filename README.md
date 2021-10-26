@@ -1,6 +1,6 @@
 # FindOrBuild (FOB)
 A CMake module set that functions as a package manager that downloads and 
-builds packages that can't be found using find_package.
+builds packages that can't be found using `find_package`.
 
 It can be used within a CMake list file to search for packages. It can handle 
 multiple versions of the same package and multiple configuration builds of the 
