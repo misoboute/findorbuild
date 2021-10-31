@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/test"
+    "cmake.sourceDirectory": "${workspaceFolder}/test",
+    "editor.rulers": [80, 120]
 }
