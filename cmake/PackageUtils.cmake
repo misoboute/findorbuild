@@ -50,21 +50,17 @@ function(fob_normalize_version_number VERSION_VAR)
     set(${VERSION_VAR} "${VERSION}${MISSING_VER_PARTS}" PARENT_SCOPE)
 endfunction(fob_normalize_version_number)
 
-function(fob_add_ext_cmake_project NAME VERSION)
-    set(OPTIONS)
-    set(SINGLE_VAL PDB_INSTALL_DIR)
-    set(MULTI_VAL CMAKE_ARGS CMAKE_CACHE_ARGS CMAKE_CACHE_DEFAULT_ARGS 
-        BUILD_DISTINGUISHING_VARS)
-    cmake_parse_arguments(
-        ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
-        
-    _calc_build_config_id(CFG_ID "${ARG_BUILD_DISTINGUISHING_VARS}")
-    fob_normalize_version_number(VERSION)
+macro(fob_setup_extproj_dirs NAME VERSION)
+    set(_BUILD_DISTINGUISHING_VARS ${ARGN})
+    _calc_build_config_id(CFG_ID "${_BUILD_DISTINGUISHING_VARS}")
+    
+    set(_VERSION ${VERSION})
+    fob_normalize_version_number(_VERSION)
 
-    set(BASE_DIR ${FOB_STORAGE_ROOT}/${NAME}/${VERSION})
+    set(BASE_DIR ${FOB_STORAGE_ROOT}/${NAME}/${_VERSION})
     set(CFG_DIR ${BASE_DIR}/${CFG_ID})
 
-    _write_build_config_desc_file(${CFG_DIR} "${ARG_BUILD_DISTINGUISHING_VARS}")
+    _write_build_config_desc_file(${CFG_DIR} "${_BUILD_DISTINGUISHING_VARS}")
 
     set(DOWNLOAD_DIR ${BASE_DIR}/download)
     set(SOURCE_DIR ${BASE_DIR}/src)
@@ -73,6 +69,80 @@ function(fob_add_ext_cmake_project NAME VERSION)
     set(BINARY_DIR ${CFG_DIR}/build)
     set(LOG_DIR ${CFG_DIR}/log)
     set(INSTALL_DIR ${CFG_DIR}/install)
+endmacro()
+
+# If the generator is MSVC, it finds the corresponding vcvarsall.bat and
+# stores the path in the output variable. It also appends appropriate arguments
+# to the output variable according to the specified ARCH (target architecture)
+# and HOST_ARCH (host architecture). If architecture is not specified, current
+# architecture will be used for both host and target. Pass the STRING option
+# to have the output as a single command line string rather than the usual
+# ;-list used in cmake COMMAND arguments.
+function(fob_find_vcvarsall OUTVAR)
+    if(NOT MSVC)
+        message(AUTHOR_WARNING "fob_find_vcvarsall only works with MSVC!")
+        return()
+    endif(NOT MSVC)
+
+    set(OPTIONS REQUIRED STRING)
+    set(SINGLE_VAL ARCH HOST_ARCH)
+    set(MULTI_VAL)
+    cmake_parse_arguments(
+        ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
+
+    get_filename_component(_VC_LINKER_DIR ${CMAKE_LINKER} DIRECTORY)
+    find_file(_VCVARSALL_BAT vcvarsall.bat
+        ${_VC_LINKER_DIR}/..
+        ${_VC_LINKER_DIR}/../..
+        # MSVS2017 Community:
+        ${_VC_LINKER_DIR}/../../../../../../Auxiliary/Build
+        # MSVS2017 Enterprise, etc:
+        ${_VC_LINKER_DIR}/../../../../../Auxiliary/Build
+    )
+
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(_CURRENT_ARCH amd64)
+    else()
+        set(_CURRENT_ARCH x86)
+    endif()
+    
+    fob_set_default_var_value(ARG_ARCH ${_CURRENT_ARCH})
+    fob_set_default_var_value(ARG_HOST_ARCH ${_CURRENT_ARCH})
+
+    if(${ARG_ARCH} STREQUAL ${ARG_HOST_ARCH})
+        set(_VCVARSALL_ARG ${ARG_ARCH})
+    else(${ARG_ARCH} STREQUAL ${ARG_HOST_ARCH})
+        set(_VCVARSALL_ARG ${ARG_HOST_ARCH}_${ARG_ARCH})
+    endif(${ARG_ARCH} STREQUAL ${ARG_HOST_ARCH})
+
+    if(ARG_STRING)
+        string(REPLACE ";" " " _VCVARSALL_ARG ${_VCVARSALL_ARG})
+        file(TO_NATIVE_PATH ${_VCVARSALL_BAT} _VCVARSALL_BAT)
+        set(_VCVARS_CMD "CALL \"${_VCVARSALL_BAT}\" ${_VCVARSALL_ARG}")
+    else(ARG_STRING)
+        set(_VCVARS_CMD CALL ${_VCVARSALL_BAT} ${_VCVARSALL_ARG})
+    endif(ARG_STRING)
+
+    message("_VCVARSALL_BAT: ${_VCVARSALL_BAT}")
+    if(_VCVARSALL_BAT)
+        set(${OUTVAR} ${_VCVARS_CMD} PARENT_SCOPE)
+    else(_VCVARSALL_BAT)
+        if (ARG_REQUIRED)
+            message(FATAL_ERROR "Failed to locate vcvarsall.bat")
+        endif ()
+        unset(${OUTVAR} PARENT_SCOPE)
+    endif(_VCVARSALL_BAT)
+endfunction(fob_find_vcvarsall)
+
+function(fob_add_ext_cmake_project NAME VERSION)
+    set(OPTIONS)
+    set(SINGLE_VAL PDB_INSTALL_DIR)
+    set(MULTI_VAL CMAKE_ARGS CMAKE_CACHE_ARGS CMAKE_CACHE_DEFAULT_ARGS 
+        BUILD_DISTINGUISHING_VARS)
+    cmake_parse_arguments(
+        ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
+
+    fob_setup_extproj_dirs(${NAME} ${VERSION} ${BUILD_DISTINGUISHING_VARS})
 
     if(MSVC AND ARG_PDB_INSTALL_DIR)
         set(PDB_OUT_DIR <BINARY_DIR>/PDBFilesDebug)

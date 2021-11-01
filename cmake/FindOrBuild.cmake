@@ -46,7 +46,7 @@ for packages."
 option(FOB_ENABLE_PACKAGE_RETRIEVE
     "Determines whether we should retrieve, build, and install packages that \
 are not found in system packages or those previously built and installed by us"
-    TRUE)
+    true)
 
 include(${FOB_MODULE_DIR}/CommonUtils.cmake)
 
@@ -157,9 +157,9 @@ function(_fob_is_package_found PACKAGE_NAME OUTPUT_VAR)
     # even if the package name passed to find_package is not in all uppercase.
     string(TOUPPER ${PACKAGE_NAME} _UPPERCASE_PACKAGE_NAME)
     if (${PACKAGE_NAME}_FOUND OR ${_UPPERCASE_PACKAGE_NAME}_FOUND)
-        set(${OUTPUT_VAR} TRUE PARENT_SCOPE)
+        set(${OUTPUT_VAR} true PARENT_SCOPE)
     else()
-        set(${OUTPUT_VAR} FALSE PARENT_SCOPE)
+        set(${OUTPUT_VAR} false PARENT_SCOPE)
     endif()
 endfunction(_fob_is_package_found)
 
