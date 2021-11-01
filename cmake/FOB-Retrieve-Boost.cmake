@@ -19,8 +19,18 @@ set(BOOST_VERSIONS
 list(GET BOOST_VERSIONS -1 BOOST_LATEST_VERSION)
 
 fob_set_default_var_value(FOB_REQUESTED_VERSION 1.77.0)
-# TODO: Add variables to customize configuration parameters that can be passed 
-# to b2. Add the variables to fob_setup_extproj_dirs as build distinguishing.
+if(WIN32)
+    fob_set_default_var_value(BOOST_SHARED_RUNTIME true)
+    fob_set_default_var_value(BOOST_STATIC_RUNTIME false)
+    fob_set_default_var_value(BOOST_SHARED_LIBS false)
+else()
+    fob_set_default_var_value(BOOST_SHARED_RUNTIME false)
+    fob_set_default_var_value(BOOST_STATIC_RUNTIME true)
+    fob_set_default_var_value(BOOST_SHARED_LIBS true)
+endif()
+fob_set_default_var_value(BOOST_STATIC_LIBS true)
+fob_set_default_var_value(BOOST_SINGLE_THREADED_LIBS false)
+fob_set_default_var_value(BOOST_MULTI_THREADED_LIBS true)
 
 fob_normalize_version_number(FOB_REQUESTED_VERSION)
 string(REGEX REPLACE "\\.[0-9]$" "" 
@@ -38,7 +48,7 @@ else(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(BOOST_ADDRESS_MODEL 32)
 endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
-set(BOOST_SRC_DIR ${SM_DOWNLOAD_CACHE_DIR}/Source/boost)
+set(BOOST_SRC_DIR ${SOURCE_DIR}/Source/boost)
 if(WIN32)
     # The bootstrap must be run from an MSVS developer command prompt.
     # We shall set the environment instead using vcvarsall in a batch
@@ -89,7 +99,34 @@ ExternalProject_Add_Step(
     COMMAND 
 )
 
-# Complete command line options: b2.exe --help
+# To see what values could be set for the toolset, search for `<toolset>`
+# within the jamfiles throughout the boost source. Other values are: clang, gcc,
+# intel-linux, msvc.
+if(MSVC)
+    if(MSVC_TOOLSET_VERSION STREQUAL 142)
+        set(BOOST_BUILD_TOOLSET msvc-14.2)
+    elseif(MSVC_TOOLSET_VERSION STREQUAL 141)
+        set(BOOST_BUILD_TOOLSET msvc-14.1)
+    elseif(MSVC_TOOLSET_VERSION STREQUAL 140)
+        set(BOOST_BUILD_TOOLSET msvc-14.0)
+    elseif(MSVC_TOOLSET_VERSION STREQUAL 120)
+        set(BOOST_BUILD_TOOLSET msvc-12.0)
+    elseif(MSVC_TOOLSET_VERSION STREQUAL 110)
+        set(BOOST_BUILD_TOOLSET msvc-11.0)
+    elseif(MSVC_TOOLSET_VERSION STREQUAL 100)
+        set(BOOST_BUILD_TOOLSET msvc-10.0)
+    elseif(MSVC_TOOLSET_VERSION STREQUAL 90)
+        set(BOOST_BUILD_TOOLSET msvc-9.0)
+    endif()
+elseif(APPLE)
+    set(BOOST_BUILD_TOOLSET darwin)
+elseif(CMAKE_C_COMPILER_ID STREQUAL GCC)
+    set(BOOST_BUILD_TOOLSET gcc)
+elseif(CMAKE_C_COMPILER_ID STREQUAL CLANG)
+    set(BOOST_BUILD_TOOLSET clang)
+endif()
+
+# Complete command line options: b2.exe --help-options
 # http://www.boost.org/build/doc/html/bbv2/overview/invocation.html
 set (BOOST_BUILD_COMMAND_OPTIONS
     -d1 # We won't need a lot debug output from the build
