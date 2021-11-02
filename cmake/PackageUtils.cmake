@@ -33,6 +33,37 @@ function(_calc_build_config_id CFG_ID_VAR BUILD_DISTINGUISHING_VARS)
     set(${CFG_ID_VAR} ${HASH} PARENT_SCOPE)
 endfunction(_calc_build_config_id)
 
+# Downloads a FOB file from the upstream repository if it hasn't already 
+# been downloaded. FILE_PATH is relative to the fob repository root.
+# If successful and if PATH_OUT_VAR is provided, upon return, the given 
+# variable will contain the full path to downloaded file within the build 
+# directory.
+function(fob_download_fob_file_if_not_exists FILE_PATH PATH_OUT_VAR)
+    set(FOB_BINARY_ROOT_DIR ${CMAKE_BINARY_DIR}/fob)
+    set(FOB_ROOT_DIR_URL
+        https://raw.githubusercontent.com/misoboute/findorbuild/main)
+
+    set(URL ${FOB_ROOT_DIR_URL}/${FILE_PATH})
+    set(LOCAL_PATH ${FOB_BINARY_ROOT_DIR}/${FILE_PATH})
+    
+    if(NOT EXISTS ${LOCAL_PATH})
+        file(DOWNLOAD ${URL} ${LOCAL_PATH} STATUS DL_STAT)
+        list(POP_FRONT DL_STAT ERRNO)
+        if(ERRNO)
+            list(POP_FRONT DL_STAT MSG)
+            message(AUTHOR_WARNING
+                "Failed to download from ${URL} to ${LOCAL_PATH} => ${MSG}")
+            if(PATH_OUT_VAR)
+                unset(${PATH_OUT_VAR})
+            endif()
+        else()
+            if(PATH_OUT_VAR)
+                set(${PATH_OUT_VAR} ${LOCAL_PATH})
+            endif()
+        endif()
+    endif()
+endfunction(fob_download_fob_file_if_not_exists)
+
 function(_write_build_config_desc_file CFG_DIR BUILD_DISTINGUISHING_VARS)
     _calc_build_config_desc(CFG_DESC "${BUILD_DISTINGUISHING_VARS}")
     string(PREPEND CFG_DESC
@@ -50,6 +81,13 @@ function(fob_normalize_version_number VERSION_VAR)
     set(${VERSION_VAR} "${VERSION}${MISSING_VER_PARTS}" PARENT_SCOPE)
 endfunction(fob_normalize_version_number)
 
+function(fob_write_specific_compatibility_file CFG_DIR MODULE_NAME)
+    fob_download_fob_file_if_not_exists(
+        ConfigCompatFiles/${MODULE_NAME}.in.cmake INPUT_FILE)
+    configure_file(
+        ${INPUT_FILE} ${CFG_DIR}/compatibility/${MODULE_NAME}.cmake @ONLY)
+endfunction(fob_write_specific_compatibility_file)
+
 macro(fob_setup_extproj_dirs NAME VERSION)
     set(_BUILD_DISTINGUISHING_VARS ${ARGN})
     _calc_build_config_id(CFG_ID "${_BUILD_DISTINGUISHING_VARS}")
@@ -57,18 +95,19 @@ macro(fob_setup_extproj_dirs NAME VERSION)
     set(_VERSION ${VERSION})
     fob_normalize_version_number(_VERSION)
 
-    set(BASE_DIR ${FOB_STORAGE_ROOT}/${NAME}/${_VERSION})
-    set(CFG_DIR ${BASE_DIR}/${CFG_ID})
+    set(_BASE_DIR ${FOB_STORAGE_ROOT}/${NAME}/${_VERSION})
+    set(_CFG_DIR ${_BASE_DIR}/${CFG_ID})
 
-    _write_build_config_desc_file(${CFG_DIR} "${_BUILD_DISTINGUISHING_VARS}")
+    set(DOWNLOAD_DIR ${_BASE_DIR}/download)
+    set(SOURCE_DIR ${_BASE_DIR}/src)
+    set(TMP_DIR ${_CFG_DIR}/tmp)
+    set(STAMP_DIR ${_CFG_DIR}/stamp)
+    set(BINARY_DIR ${_CFG_DIR}/build)
+    set(LOG_DIR ${_CFG_DIR}/log)
+    set(INSTALL_DIR ${_CFG_DIR}/install)
 
-    set(DOWNLOAD_DIR ${BASE_DIR}/download)
-    set(SOURCE_DIR ${BASE_DIR}/src)
-    set(TMP_DIR ${CFG_DIR}/tmp)
-    set(STAMP_DIR ${CFG_DIR}/stamp)
-    set(BINARY_DIR ${CFG_DIR}/build)
-    set(LOG_DIR ${CFG_DIR}/log)
-    set(INSTALL_DIR ${CFG_DIR}/install)
+    _write_build_config_desc_file(${_CFG_DIR} "${_BUILD_DISTINGUISHING_VARS}")
+    fob_write_specific_compatibility_file(${_CFG_DIR} Generic)
 endmacro()
 
 # If the generator is MSVC, it finds the corresponding vcvarsall.bat and
