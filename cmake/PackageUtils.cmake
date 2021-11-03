@@ -54,11 +54,11 @@ function(fob_download_fob_file_if_not_exists FILE_PATH PATH_OUT_VAR)
             message(AUTHOR_WARNING
                 "Failed to download from ${URL} to ${LOCAL_PATH} => ${MSG}")
             if(PATH_OUT_VAR)
-                unset(${PATH_OUT_VAR})
+                unset(${PATH_OUT_VAR} PARENT_SCOPE)
             endif()
         else()
             if(PATH_OUT_VAR)
-                set(${PATH_OUT_VAR} ${LOCAL_PATH})
+                set(${PATH_OUT_VAR} ${LOCAL_PATH} PARENT_SCOPE)
             endif()
         endif()
     endif()
@@ -227,7 +227,9 @@ function(fob_add_ext_cmake_project NAME VERSION)
             -DCMAKE_INSTALL_PREFIX:STRING=<INSTALL_DIR>
             -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
             -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
-            -DCMAKE_DEBUG_POSTFIX:STRING=d
+            -DCMAKE_RELWITHDEBINFO_POSTFIX:STRING=-rd
+            -DCMAKE_MINSIZEREL_POSTFIX:STRING=-mr
+            -DCMAKE_DEBUG_POSTFIX:STRING=-d
             -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
             "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
             ${REQUESTED_CFG_ARGS_SETTING}
@@ -237,7 +239,7 @@ function(fob_add_ext_cmake_project NAME VERSION)
 
     if(NOT CMAKE_CONFIGURATION_TYPES)
         if(NOT CMAKE_BUILD_TYPE)
-            set(OPT_CFG_TYPES Release)
+            set(OPT_CFG_TYPES Debug Release)
         else()
             set(OPT_CFG_TYPES ${CMAKE_BUILD_TYPE})
         endif()

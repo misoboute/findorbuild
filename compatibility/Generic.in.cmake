@@ -40,13 +40,10 @@ if(XCODE)
         NOT CMAKE_OSX_DEPLOYMENT_TARGET 
             VERSION_EQUAL @CMAKE_OSX_DEPLOYMENT_TARGET@)
         set(FOB_IS_COMPATIBLE false)
-        return()
     endif()
 elseif(MSVC)
     # Test MSVC toolset version compatibility
-    list(APPEND BUILD_DISTINGUISHING_VARS MSVC_TOOLSET_VERSION)
     if(NOT MSVC_TOOLSET_VERSION VERSION_EQUAL @MSVC_TOOLSET_VERSION@)
         set(FOB_IS_COMPATIBLE false)
-        return()
     endif()
 endif()
