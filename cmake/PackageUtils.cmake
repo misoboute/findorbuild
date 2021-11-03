@@ -82,10 +82,13 @@ function(fob_normalize_version_number VERSION_VAR)
 endfunction(fob_normalize_version_number)
 
 function(fob_write_specific_compatibility_file CFG_DIR MODULE_NAME)
+    unset(INPUT_FILE)
     fob_download_fob_file_if_not_exists(
         ConfigCompatFiles/${MODULE_NAME}.in.cmake INPUT_FILE)
-    configure_file(
-        ${INPUT_FILE} ${CFG_DIR}/compatibility/${MODULE_NAME}.cmake @ONLY)
+    if(INPUT_FILE)
+        configure_file(
+            ${INPUT_FILE} ${CFG_DIR}/compatibility/${MODULE_NAME}.cmake @ONLY)
+    endif()
 endfunction(fob_write_specific_compatibility_file)
 
 # Creates the directory tree within the FOB store where package archives,
@@ -187,6 +190,8 @@ function(fob_add_ext_cmake_project NAME VERSION)
         ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
 
     fob_setup_extproj_dirs(${NAME} ${VERSION} ${BUILD_DISTINGUISHING_VARS})
+
+    fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} ${NAME})
 
     if(MSVC AND ARG_PDB_INSTALL_DIR)
         set(PDB_OUT_DIR <BINARY_DIR>/PDBFilesDebug)
