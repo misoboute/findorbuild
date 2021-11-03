@@ -20,17 +20,14 @@ list(GET BOOST_VERSIONS -1 BOOST_LATEST_VERSION)
 
 fob_set_default_var_value(FOB_REQUESTED_VERSION 1.77.0)
 if(WIN32)
-    fob_set_default_var_value(BOOST_SHARED_RUNTIME true)
-    fob_set_default_var_value(BOOST_STATIC_RUNTIME false)
-    fob_set_default_var_value(BOOST_SHARED_LIBS false)
+    fob_set_default_var_value(BOOST_VARIANT debug release)
+    fob_set_default_var_value(BOOST_LINK static)
 else()
-    fob_set_default_var_value(BOOST_SHARED_RUNTIME false)
-    fob_set_default_var_value(BOOST_STATIC_RUNTIME true)
-    fob_set_default_var_value(BOOST_SHARED_LIBS true)
+    fob_set_default_var_value(BOOST_VARIANT release)
+    fob_set_default_var_value(BOOST_LINK static shared)
 endif()
-fob_set_default_var_value(BOOST_STATIC_LIBS true)
-fob_set_default_var_value(BOOST_SINGLE_THREADED_LIBS false)
-fob_set_default_var_value(BOOST_MULTI_THREADED_LIBS true)
+fob_set_default_var_value(BOOST_THREADING single multi)
+fob_set_default_var_value(BOOST_RUNTIME_LINK ${BOOST_LINK})
 
 fob_normalize_version_number(FOB_REQUESTED_VERSION)
 string(REGEX REPLACE "\\.[0-9]$" "" 
@@ -75,6 +72,8 @@ message("BOOST_BOOTSTRAP_COMMAND: ${BOOST_BOOTSTRAP_COMMAND}")
 
 fob_setup_extproj_dirs(boost ${FOB_REQUESTED_VERSION})
 
+fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Boost)
+
 ExternalProject_Add(
     FOB_boost
     GIT_REPOSITORY https://github.com/boostorg/boost
@@ -96,7 +95,6 @@ ExternalProject_Add_Step(
     DEPENDEES patch
     DEPENDERS configure
     COMMAND ${BOOST_BOOTSTRAP_COMMAND}
-    COMMAND 
 )
 
 # To see what values could be set for the toolset, search for `<toolset>`
@@ -117,37 +115,50 @@ if(MSVC)
         set(BOOST_BUILD_TOOLSET msvc-10.0)
     elseif(MSVC_TOOLSET_VERSION STREQUAL 90)
         set(BOOST_BUILD_TOOLSET msvc-9.0)
+    else()
+        set(BOOST_BUILD_TOOLSET msvc)
     endif()
 elseif(APPLE)
     set(BOOST_BUILD_TOOLSET darwin)
-elseif(CMAKE_C_COMPILER_ID STREQUAL GCC)
-    set(BOOST_BUILD_TOOLSET gcc)
 elseif(CMAKE_C_COMPILER_ID STREQUAL CLANG)
     set(BOOST_BUILD_TOOLSET clang)
+elseif(CMAKE_C_COMPILER_ID STREQUAL GCC)
+    set(BOOST_BUILD_TOOLSET gcc)
+elseif(CMAKE_C_COMPILER_ID IN_LIST Borland Embarcadero)
+    set(BOOST_BUILD_TOOLSET borland)
+elseif(CMAKE_C_COMPILER_ID STREQUAL HP)
+    set(BOOST_BUILD_TOOLSET acc)
+elseif(CMAKE_C_COMPILER_ID IN_LIST Intel IntelLLVM)
+    set(BOOST_BUILD_TOOLSET intel)
+elseif(CMAKE_C_COMPILER_ID STREQUAL SunPro)
+    set(BOOST_BUILD_TOOLSET sun)
+elseif(CMAKE_C_COMPILER_ID IN_LIST XL XLClang VisualAge zOS)
+    set(BOOST_BUILD_TOOLSET vacpp)
 endif()
 
+set(BOOST_BUILD_COMMANDS)
+set(BOOST_INSTALL_COMMANDS)
 # Complete command line options: b2.exe --help-options
 # http://www.boost.org/build/doc/html/bbv2/overview/invocation.html
+
 set (BOOST_BUILD_COMMAND_OPTIONS
     -d1 # We won't need a lot debug output from the build
     -sBOOST_ROOT=<SOURCE_DIR>
-
-    # Other layouts place the include directory inside a version suffixed directory
-    # which can't be found by find_package. Since we already use a separate 
-    # build/install for each version we don't need 'versioned'. 'system' 
-    # installs directly into system directories. 'tagged' layout distinguishes
-    # different variants that are built according to the `build-type`.
+# Other layouts place the include directory inside a version suffixed directory
+# which can't be found by find_package. Since we already use a separate 
+# build/install for each version we don't need 'versioned'. 'system' 
+# installs directly into system directories. 'tagged' layout distinguishes
+# different variants that are built according to the `build-type`.
     --layout=tagged
-    --without-python
     --build-dir=<BINARY_DIR>
     --prefix=<INSTALL_DIR>
-    --build-type=minimal
-        # debug & release / multithread / shared runtime / static libs
+    variant=$<JOIN:${BOOST_VARIANT},,>
+    link=$<JOIN:${BOOST_LINK},,>
+    threading=$<JOIN:${BOOST_THREADING},,>
+    runtime-link=$<JOIN:${BOOST_RUNTIME_LINK},,>
     toolset=${BOOST_BUILD_TOOLSET}
     address-model=${BOOST_ADDRESS_MODEL}   # 32/64
 )
-
-message("BOOST_BUILD_COMMAND_OPTIONS: ${BOOST_BUILD_COMMAND_OPTIONS}")
 
 ExternalProject_Add_Step(
     FOB_boost b2_build

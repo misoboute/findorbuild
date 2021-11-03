@@ -88,6 +88,10 @@ function(fob_write_specific_compatibility_file CFG_DIR MODULE_NAME)
         ${INPUT_FILE} ${CFG_DIR}/compatibility/${MODULE_NAME}.cmake @ONLY)
 endfunction(fob_write_specific_compatibility_file)
 
+# Creates the directory tree within the FOB store where package archives,
+# sources, and multiple build/install trees (for each distinct configuration),
+# and sets the variables CONFIG_ROOT_DIR, DOWNLOAD_DIR, SOURCE_DIR, TEMP_DIR, 
+# STAMP_DIR, BINARY_DIR, LOG_DIR, INSTALL_DIR.
 macro(fob_setup_extproj_dirs NAME VERSION)
     set(_BUILD_DISTINGUISHING_VARS ${ARGN})
     _calc_build_config_id(CFG_ID "${_BUILD_DISTINGUISHING_VARS}")
@@ -96,18 +100,19 @@ macro(fob_setup_extproj_dirs NAME VERSION)
     fob_normalize_version_number(_VERSION)
 
     set(_BASE_DIR ${FOB_STORAGE_ROOT}/${NAME}/${_VERSION})
-    set(_CFG_DIR ${_BASE_DIR}/${CFG_ID})
+    set(CONFIG_ROOT_DIR ${_BASE_DIR}/${CFG_ID})
 
     set(DOWNLOAD_DIR ${_BASE_DIR}/download)
     set(SOURCE_DIR ${_BASE_DIR}/src)
-    set(TMP_DIR ${_CFG_DIR}/tmp)
-    set(STAMP_DIR ${_CFG_DIR}/stamp)
-    set(BINARY_DIR ${_CFG_DIR}/build)
-    set(LOG_DIR ${_CFG_DIR}/log)
-    set(INSTALL_DIR ${_CFG_DIR}/install)
+    set(TEMP_DIR ${CONFIG_ROOT_DIR}/tmp)
+    set(STAMP_DIR ${CONFIG_ROOT_DIR}/stamp)
+    set(BINARY_DIR ${CONFIG_ROOT_DIR}/build)
+    set(LOG_DIR ${CONFIG_ROOT_DIR}/log)
+    set(INSTALL_DIR ${CONFIG_ROOT_DIR}/install)
 
-    _write_build_config_desc_file(${_CFG_DIR} "${_BUILD_DISTINGUISHING_VARS}")
-    fob_write_specific_compatibility_file(${_CFG_DIR} Generic)
+    _write_build_config_desc_file(
+        ${_CFG_DCONFIG_ROOT_DIRIR} "${_BUILD_DISTINGUISHING_VARS}")
+    fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Generic)
 endmacro()
 
 # If the generator is MSVC, it finds the corresponding vcvarsall.bat and
