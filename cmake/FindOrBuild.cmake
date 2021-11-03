@@ -50,7 +50,38 @@ are not found in system packages or those previously built and installed by us"
 
 include(${FOB_MODULE_DIR}/CommonUtils.cmake)
 
+# Get a list of compiler IDs that are binary compatible with the given 
+# compiler ID. This compatibility mapping is speculative and based on little 
+# research and almost no experiment. Its validity can be tested.
+function(fob_get_binary_compatible_compilers 
+    COMPILER_ID COMPATIBLE_COMPILER_SET_VAR)
+    
+    if(APPLE AND COMPILER_ID IN_LIST AppleClang GNU)
+        set(COMPATIBLE_SET AppleClang GNU)
+    elseif(COMPILER_ID IN_LIST 
+        Clang GNU Intel IntelLLVM OpenWatcom PathScale PGI)
+        set(COMPATIBLE_SET 
+            Clang GNU Intel IntelLLVM OpenWatcom PathScale PGI)
+    elseif(COMPILER_ID IN_LIST Fujitsu FujitsuClang)
+        set(COMPATIBLE_SET Fujitsu FujitsuClang)
+    elseif(COMPILER_ID IN_LIST Embarcadero Borland)
+        set(COMPATIBLE_SET Embarcadero Borland)
+    elseif(COMPILER_ID IN_LIST XL XLClang)
+        set(COMPATIBLE_SET XL XLClang)
+    else()
+        set(COMPATIBLE_SET ${COMPILER_ID})
+    endif()
+
+    set(${COMPATIBLE_COMPILER_SET_VAR} ${COMPILER_SET} PARENT_SCOPE)
+endfunction(_get_binary_compatible_compilers 
+
 function(_does_cfg_dir_match_args OUTVAR CFG_DIR CFG_ARGS)
+    unset(FOB_IS_COMPATIBLE)
+    include(${CFG_DIR}/GenericConfigCompatibility.cmake)
+    if(NOT FOB_IS_COMPATIBLE)
+        set(${OUTVAR} ${FOB_IS_COMPATIBLE})
+        return()
+    endif()
     foreach(REQUIRED_CFG ${CFG_ARGS})
         set(ARG_REGEX "^-D\\s*([a-zA-Z_][0-9a-zA-Z_]*)=(.*)")
         set(REQ_ITEM_MET false)
@@ -60,12 +91,6 @@ function(_does_cfg_dir_match_args OUTVAR CFG_DIR CFG_ARGS)
             set(FOB_${REQUIRED_ARG_NAME} ${REQUIRED_ARG_VALUE})
         endif()
     endforeach(REQUIRED_CFG)
-    unset(FOB_IS_COMPATIBLE)
-    include(${CFG_DIR}/GenericConfigCompatibility.cmake OPTIONAL)
-    if(NOT FOB_IS_COMPATIBLE)
-        set(${OUTVAR} ${FOB_IS_COMPATIBLE})
-        return()
-    endif()
     include(${CFG_DIR}/SpecificConfigCompatibility.cmake OPTIONAL)
     set(${OUTVAR} ${FOB_IS_COMPATIBLE})
 endfunction(_does_cfg_dir_match_args)
