@@ -19,12 +19,10 @@ fob_get_binary_compatible_compilers(
 fob_get_binary_compatible_compilers(
     @CMAKE_CXX_COMPILER_ID@ COMPATIBLE_CXX_COMPILERS)
 
-if(CMAKE_C_COMPILER_ID IN_LIST COMPATIBLE_SET)
-    if(NOT @CMAKE_C_COMPILER_ID@ IN_LIST COMPATIBLE_C_COMPILERS OR
-        NOT @CMAKE_CXX_COMPILER_ID@ IN_LIST COMPATIBLE_CXX_COMPILERS)
-        set(FOB_IS_COMPATIBLE false)
-        return()
-    endif()
+if(NOT @CMAKE_C_COMPILER_ID@ IN_LIST COMPATIBLE_C_COMPILERS OR
+    NOT @CMAKE_CXX_COMPILER_ID@ IN_LIST COMPATIBLE_CXX_COMPILERS)
+    set(FOB_IS_COMPATIBLE false)
+    return()
     break()
 endif()
 

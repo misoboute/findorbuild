@@ -68,7 +68,6 @@ elseif(UNIX)
     set(BOOST_BOOTSTRAP_COMMAND ./bootstrap.sh)
     set(BOOST_B2_COMMAND ./b2)
 endif(WIN32)
-message("BOOST_BOOTSTRAP_COMMAND: ${BOOST_BOOTSTRAP_COMMAND}")
 
 fob_setup_extproj_dirs(boost ${FOB_REQUESTED_VERSION})
 
@@ -136,11 +135,8 @@ elseif(CMAKE_C_COMPILER_ID IN_LIST XL XLClang VisualAge zOS)
     set(BOOST_BUILD_TOOLSET vacpp)
 endif()
 
-set(BOOST_BUILD_COMMANDS)
-set(BOOST_INSTALL_COMMANDS)
 # Complete command line options: b2.exe --help-options
 # http://www.boost.org/build/doc/html/bbv2/overview/invocation.html
-
 set (BOOST_BUILD_COMMAND_OPTIONS
     -d1 # We won't need a lot debug output from the build
     -sBOOST_ROOT=<SOURCE_DIR>
