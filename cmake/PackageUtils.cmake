@@ -84,7 +84,7 @@ endfunction(fob_normalize_version_number)
 function(fob_write_specific_compatibility_file CFG_DIR MODULE_NAME)
     unset(INPUT_FILE)
     fob_download_fob_file_if_not_exists(
-        ConfigCompatFiles/${MODULE_NAME}.in.cmake INPUT_FILE)
+        compatibility/${MODULE_NAME}.in.cmake INPUT_FILE)
     if(INPUT_FILE)
         configure_file(
             ${INPUT_FILE} ${CFG_DIR}/compatibility/${MODULE_NAME}.cmake @ONLY)
@@ -114,7 +114,7 @@ macro(fob_setup_extproj_dirs NAME VERSION)
     set(INSTALL_DIR ${CONFIG_ROOT_DIR}/install)
 
     _write_build_config_desc_file(
-        ${_CFG_DCONFIG_ROOT_DIRIR} "${_BUILD_DISTINGUISHING_VARS}")
+        ${CONFIG_ROOT_DIR} "${_BUILD_DISTINGUISHING_VARS}")
     fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Generic)
 endmacro()
 
@@ -189,7 +189,7 @@ function(fob_add_ext_cmake_project NAME VERSION)
     cmake_parse_arguments(
         ARG "${OPTIONS}" "${SINGLE_VAL}" "${MULTI_VAL}" ${ARGN})
 
-    fob_setup_extproj_dirs(${NAME} ${VERSION} ${BUILD_DISTINGUISHING_VARS})
+    fob_setup_extproj_dirs(${NAME} ${VERSION} ${ARG_BUILD_DISTINGUISHING_VARS})
 
     fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} ${NAME})
 

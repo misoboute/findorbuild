@@ -73,7 +73,7 @@ function(fob_get_binary_compatible_compilers
     endif()
 
     set(${COMPATIBLE_COMPILER_SET_VAR} ${COMPILER_SET} PARENT_SCOPE)
-endfunction(_get_binary_compatible_compilers 
+endfunction(fob_get_binary_compatible_compilers) 
 
 function(_does_cfg_dir_match_args OUTVAR CFG_DIR CFG_ARGS)
     unset(FOB_IS_COMPATIBLE)
@@ -334,8 +334,6 @@ function(_fob_include_and_build_in_cmake_time)
         message(WARNING
 "At least one module is needed by _fob_include_and_build_in_cmake_time")
         return()
-    else()
-        string(REPLACE ";" " " MODULES_SPACE_SEP "${ARG_MODULES}")
     endif()
 
     set(LIST_FILE_CONTENTS
@@ -343,7 +341,7 @@ function(_fob_include_and_build_in_cmake_time)
 ${PROJECT_LINE}
 set(CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
 include(\${FOB_MODULE_DIR}/PackageUtils.cmake)
-foreach(MOD ${MODULES_SPACE_SEP})
+foreach(MOD \"${ARG_MODULES}\")
     include(\${MOD})
 endforeach(MOD)
 ")
@@ -421,7 +419,7 @@ function(_fob_download_build_install_package PACKAGE_NAME)
 
     _fob_include_and_build_in_cmake_time(
         PROJ_NAME Retrieve${PACKAGE_NAME}
-        MODULES FOB-Retrieve-${PACKAGE_NAME}
+        MODULES ${FOB_MODULE_DIR}/retrievers/${PACKAGE_NAME}.cmake
         PROJ_PATH ${EXT_PROJ_PATH}
         CACHE_ARGS
             -DFOB_MODULE_DIR=${FOB_MODULE_DIR}
