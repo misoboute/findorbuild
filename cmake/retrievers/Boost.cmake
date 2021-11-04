@@ -26,7 +26,7 @@ else()
     fob_set_default_var_value(BOOST_VARIANT release)
     fob_set_default_var_value(BOOST_LINK static shared)
 endif()
-fob_set_default_var_value(BOOST_THREADING single multi)
+fob_set_default_var_value(BOOST_THREADING multi)
 fob_set_default_var_value(BOOST_RUNTIME_LINK ${BOOST_LINK})
 
 fob_normalize_version_number(FOB_REQUESTED_VERSION)

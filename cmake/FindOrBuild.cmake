@@ -1,6 +1,7 @@
 # This module is the main module of FindOrBuild that defines the 
 # find_or_build macro. The find_or_build macro is the central element of 
-# this module and is used instead of the native find_package with a similar syntax.
+# this module and is used instead of the native find_package with a similar 
+# syntax.
 # Refer to find_or_build documentation for more information.
 
 # Note: Macros, functions, and variables whose names begin with a single
@@ -75,6 +76,11 @@ function(fob_get_binary_compatible_compilers
     set(${COMPATIBLE_COMPILER_SET_VAR} ${COMPILER_SET} PARENT_SCOPE)
 endfunction(fob_get_binary_compatible_compilers) 
 
+# Checks whether a build configuration root directory (CFG_DIR formed as 
+# ${FOB_STORAGE_ROOT}/${PACKAGE_NAME}/${PACKAGE_VERSION}/${CONFIG_HASH_ID})
+# contains an installation of the package that is compatible with the
+# current build configuration and the requested configuration arguments 
+# (CFG_ARGS). The result is placed in the variable named by OUTVAR.
 function(_does_cfg_dir_match_args OUTVAR CFG_DIR CFG_ARGS)
     unset(FOB_IS_COMPATIBLE)
     include(${CFG_DIR}/GenericConfigCompatibility.cmake)
@@ -95,6 +101,11 @@ function(_does_cfg_dir_match_args OUTVAR CFG_DIR CFG_ARGS)
     set(${OUTVAR} ${FOB_IS_COMPATIBLE})
 endfunction(_does_cfg_dir_match_args)
 
+# Get a list of install prefix paths within ${FOB_STORAGE_ROOT} for the 
+# package specified by PACKAGE_NAME and configuration arguments (CFG_ARG).
+# It returns all the existing versions of the package if their config args
+# match. The version matching is done later on by find_package as usual.
+# The result is placed in the variable named by PATHS_VAR.
 function(_get_all_paths_for_package_in_fob_storage PACKAGE_NAME PATHS_VAR)
     set(OPTIONS)
     set(SINGLE_VAL)
@@ -123,6 +134,10 @@ function(_get_all_paths_for_package_in_fob_storage PACKAGE_NAME PATHS_VAR)
     set(${PATHS_VAR} ${INSTALL_DIRS} PARENT_SCOPE)
 endfunction(_get_all_paths_for_package_in_fob_storage)
 
+# Find the package specified by the given name (PACKAGE_NAME), other 
+# find_package arguments (including version, components, etc), and an optional
+# set of configuration arguments (CFG_ARG) ONLY within the FOB storage of 
+# packages (FOB_STORAGE_ROOT).
 macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL)
@@ -151,24 +166,53 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     fob_pop_var(CMAKE_FIND_APPBUNDLE)
 endmacro(_fob_find_package_ours_only)
 
+# Performs the first attempt at finding the package specified by the given 
+# name (PACKAGE_NAME), other find_package arguments (including version, 
+# components, etc), and an optional set of configuration arguments (CFG_ARGS).
+# It will look in the FOB storage if the CFG_ARGS is provided or 
+# USE_SYS_PACKAGES is set to either LAST or NEVER. It will look in the 
+# system packages otherwise. The CFG_ARGS, if provided, must be part of 
+# FIND_ARGS. 
 macro(_fob_find_package_first_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
-    if (${USE_SYS_PACKAGES} STREQUAL FIRST OR 
-            ${USE_SYS_PACKAGES} STREQUAL ALWAYS)
-        find_package(${PACKAGE_NAME} ${FIND_ARGS})
-    else()
+    set(_FOB_OPTIONS)
+    set(_FOB_SINGLE_VAL)
+    set(_FOB_MULTI_VAL CFG_ARGS)
+    cmake_parse_arguments(_FOBARG 
+        "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${FIND_ARGS})
+
+    if (CFG_ARGS OR 
+        USE_SYS_PACKAGES STREQUAL LAST OR USE_SYS_PACKAGES STREQUAL NEVER)
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
+    else()
+        find_package(${PACKAGE_NAME} ${FIND_ARGS})
     endif()
 endmacro(_fob_find_package_first_attempt)
 
+# Performs the second attempt at finding the package specified by the given 
+# name (PACKAGE_NAME), other find_package arguments (including version, 
+# components, etc), and an optional set of configuration arguments (CFG_ARGS).
+# It will look in the FOB storage if the CFG_ARGS is provided or 
+# USE_SYS_PACKAGES is set to either FIRST or NEVER. It will look in the 
+# system packages otherwise. The CFG_ARGS, if provided, must be part of 
+# FIND_ARGS. 
 macro(_fob_find_package_second_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
-    if (${USE_SYS_PACKAGES} STREQUAL LAST OR 
-            ${USE_SYS_PACKAGES} STREQUAL ALWAYS)
-        find_package(${PACKAGE_NAME} ${FIND_ARGS})
-    else()
+    set(_FOB_OPTIONS)
+    set(_FOB_SINGLE_VAL)
+    set(_FOB_MULTI_VAL CFG_ARGS)
+    cmake_parse_arguments(_FOBARG 
+        "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${FIND_ARGS})
+
+    if (CFG_ARGS OR 
+        USE_SYS_PACKAGES STREQUAL FIRST OR USE_SYS_PACKAGES STREQUAL NEVER)
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
+    else()
+        find_package(${PACKAGE_NAME} ${FIND_ARGS})
     endif()
 endmacro(_fob_find_package_second_attempt)
 
+# Checks whether a package specified by PACKAGE_NAME has been found by a
+# prior call to find_package. 
+# The result is placed in the variable named by OUTPUT_VAR.
 function(_fob_is_package_found PACKAGE_NAME OUTPUT_VAR)
     # Some CMake find modules set the <UPPERCASE_PACKAGE_NAME>_FOUND variable
     # even if the package name passed to find_package is not in all uppercase.
@@ -379,6 +423,8 @@ endforeach(MOD)
     endif(ARG_TARGETS)
 endfunction(_fob_include_and_build_in_cmake_time)
 
+# Copies IN_STRING into the variable named by OUT_IS_VERSION if the string
+# represents a valid semantic version number. If not it unsets the variable.
 function(_fob_is_valid_version OUT_IS_VERSION IN_STRING)
     if(IN_STRING MATCHES [[[0-9]+(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?]])
         set(${OUT_IS_VERSION} ${IN_STRING} PARENT_SCOPE)
@@ -387,6 +433,9 @@ function(_fob_is_valid_version OUT_IS_VERSION IN_STRING)
     endif()
 endfunction(_fob_is_valid_version)
 
+# Start download, build, and installation of the package specified by 
+# PACKAGE_NAME, version (the argument immediately after name), and an 
+# optional set of build configuration arguments (CFG_ARGS).
 function(_fob_download_build_install_package PACKAGE_NAME)
     set(OPTIONS)
     set(SINGLE_VAL)
