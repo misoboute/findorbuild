@@ -152,16 +152,29 @@ function(_write_build_config_desc_file CFG_DIR BUILD_DISTINGUISHING_VARS)
 endfunction(_write_build_config_desc_file)
 
 # Normalizes a version number, in the variable named by VERSION_VAR, by 
-# converting it to n.n.n.n where n represents a natural number. If the 
-# the input version has fewer than four components, one or more zero-valued 
-# components are appended to the version. The result will be replaced in
-# the same input variable.
+# converting it to n.n(.n(.n)) where n represents a natural number. If the 
+# the input version has fewer than the required components, one or more 
+# zero-valued components are appended to the version. The result will be 
+# replaced in the same input variable. The required number of components can
+# specified as the second argument. If not specified it is assumed to be 4.
 function(fob_normalize_version_number VERSION_VAR)
+    if(ARGC GREATER 1)
+        set(NUM_COMPONENTS ${ARGV1})
+    else()
+        set(NUM_COMPONENTS 4)
+    endif()
+    if(NUM_COMPONENTS GREATER 4 OR NUM_COMPONENTS LESS 2)
+        message(FATAL_ERROR
+            "Invalid number of version components: ${NUM_COMPONENTS}")
+    endif()
     set(VERSION ${${VERSION_VAR}})
     string(REPLACE "." ";" VERSION_PARTS ${VERSION})
     list(LENGTH VERSION_PARTS COUNT_VERSION_PARTS)
-    math(EXPR COUNT_MISSING_VER_PARTS "4 - ${COUNT_VERSION_PARTS}")
-    string(REPEAT ".0" ${COUNT_MISSING_VER_PARTS} MISSING_VER_PARTS)
+    math(EXPR COUNT_MISSING_VER_PARTS 
+        "${NUM_COMPONENTS} - ${COUNT_VERSION_PARTS}")
+    if(COUNT_MISSING_VER_PARTS GREATER 0)
+        string(REPEAT ".0" ${COUNT_MISSING_VER_PARTS} MISSING_VER_PARTS)
+    endif()
     set(${VERSION_VAR} "${VERSION}${MISSING_VER_PARTS}" PARENT_SCOPE)
 endfunction(fob_normalize_version_number)
 
@@ -196,7 +209,6 @@ macro(fob_setup_extproj_dirs NAME VERSION)
     _calc_build_config_id(CFG_ID "${_BUILD_DISTINGUISHING_VARS}")
     
     set(_VERSION ${VERSION})
-    fob_normalize_version_number(_VERSION)
 
     set(_BASE_DIR ${FOB_STORAGE_ROOT}/${NAME}/${_VERSION})
     set(CONFIG_ROOT_DIR ${_BASE_DIR}/${CFG_ID})
@@ -314,6 +326,14 @@ function(fob_add_ext_cmake_project NAME VERSION)
         -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
         ${_SPEC_PDB_OUTPUT_DIR}
     )
+    
+    set(CONFIG_POSTFIX_SETTING -DCMAKE_DEBUG_POSTFIX:STRING=d)
+    if(MSVC)
+        list(APPEND CONFIG_POSTFIX_SETTING
+            -DCMAKE_RELWITHDEBINFO_POSTFIX:STRING=rd
+            -DCMAKE_MINSIZEREL_POSTFIX:STRING=mr
+        )
+    endif()
 
     ExternalProject_Add(
         FOB_${NAME}
@@ -328,16 +348,14 @@ function(fob_add_ext_cmake_project NAME VERSION)
         INSTALL_COMMAND ""	# each optimization configuration
         CMAKE_ARGS 
             ${ARG_CMAKE_ARGS}
-        CMAKE_CACHE_ARGS ${ARG_CMAKE_CACHE_ARGS}
+        CMAKE_CACHE_ARGS
+            ${ARG_CMAKE_CACHE_ARGS}
             -DCMAKE_INSTALL_PREFIX:STRING=<INSTALL_DIR>
             -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
             -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
-            -DCMAKE_RELWITHDEBINFO_POSTFIX:STRING=-rd
-            -DCMAKE_MINSIZEREL_POSTFIX:STRING=-mr
-            -DCMAKE_DEBUG_POSTFIX:STRING=-d
             -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
             "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
-            ${REQUESTED_CFG_ARGS_SETTING}
+            ${CONFIG_POSTFIX_SETTING}
         CMAKE_CACHE_DEFAULT_ARGS ${ARG_CMAKE_CACHE_DEFAULT_ARGS}
         ${ARG_UNPARSED_ARGUMENTS}
     )
