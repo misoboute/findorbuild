@@ -327,14 +327,6 @@ function(fob_add_ext_cmake_project NAME VERSION)
         ${_SPEC_PDB_OUTPUT_DIR}
     )
     
-    set(CONFIG_POSTFIX_SETTING -DCMAKE_DEBUG_POSTFIX:STRING=d)
-    if(MSVC)
-        list(APPEND CONFIG_POSTFIX_SETTING
-            -DCMAKE_RELWITHDEBINFO_POSTFIX:STRING=rd
-            -DCMAKE_MINSIZEREL_POSTFIX:STRING=mr
-        )
-    endif()
-
     ExternalProject_Add(
         FOB_${NAME}
         DOWNLOAD_DIR ${DOWNLOAD_DIR}
@@ -355,14 +347,17 @@ function(fob_add_ext_cmake_project NAME VERSION)
             -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
             -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
             "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
-            ${CONFIG_POSTFIX_SETTING}
+            -DCMAKE_DEBUG_POSTFIX:STRING=d
+            -DCMAKE_RELWITHDEBINFO_POSTFIX:STRING=rd
+            -DCMAKE_MINSIZEREL_POSTFIX:STRING=mr
         CMAKE_CACHE_DEFAULT_ARGS ${ARG_CMAKE_CACHE_DEFAULT_ARGS}
         ${ARG_UNPARSED_ARGUMENTS}
     )
 
+    message("CMAKE_CONFIGURATION_TYPES: ${CMAKE_CONFIGURATION_TYPES}")
     if(NOT CMAKE_CONFIGURATION_TYPES)
         if(NOT CMAKE_BUILD_TYPE)
-            set(OPT_CFG_TYPES Debug Release)
+            set(OPT_CFG_TYPES Release)
         else()
             set(OPT_CFG_TYPES ${CMAKE_BUILD_TYPE})
         endif()
