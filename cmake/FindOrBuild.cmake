@@ -56,24 +56,27 @@ include(${FOB_MODULE_DIR}/CommonUtils.cmake)
 # research and almost no experiment. Its validity can be tested.
 function(fob_get_binary_compatible_compilers 
     COMPILER_ID COMPATIBLE_COMPILER_SET_VAR)
-    
-    if(APPLE AND COMPILER_ID IN_LIST AppleClang GNU)
-        set(COMPATIBLE_SET AppleClang GNU)
-    elseif(COMPILER_ID IN_LIST 
-        Clang GNU Intel IntelLLVM OpenWatcom PathScale PGI)
-        set(COMPATIBLE_SET 
-            Clang GNU Intel IntelLLVM OpenWatcom PathScale PGI)
-    elseif(COMPILER_ID IN_LIST Fujitsu FujitsuClang)
-        set(COMPATIBLE_SET Fujitsu FujitsuClang)
-    elseif(COMPILER_ID IN_LIST Embarcadero Borland)
-        set(COMPATIBLE_SET Embarcadero Borland)
-    elseif(COMPILER_ID IN_LIST XL XLClang)
-        set(COMPATIBLE_SET XL XLClang)
-    else()
-        set(COMPATIBLE_SET ${COMPILER_ID})
-    endif()
+    set(APPLE_COMPILERS AppleClang GNU)
+    set(CLANG_COMPILERS Clang GNU Intel IntelLLVM OpenWatcom PathScale PGI)
+    set(FUJITSU_COMPILERS Fujitsu FujitsuClang)
+    set(BORLAND_COMPILERS Embarcadero Borland)
+    set(IBM_COMPILERS XL XLClang VisualAge zOS)
 
-    set(${COMPATIBLE_COMPILER_SET_VAR} ${COMPILER_SET} PARENT_SCOPE)
+    if(APPLE AND COMPILER_ID IN_LIST APPLE_COMPILERS)
+        set(${COMPATIBLE_COMPILER_SET_VAR} ${APPLE_COMPILERS} PARENT_SCOPE)
+        return()
+    endif()
+    foreach(COMPILER_SET 
+        CLANG_COMPILERS FUJITSU_COMPILERS
+        BORLAND_COMPILERS IBM_COMPILERS
+    )
+        if(COMPILER_ID IN_LIST COMPILER_SET)
+            set(${COMPATIBLE_COMPILER_SET_VAR} ${COMPILER_SET} PARENT_SCOPE)
+            return()
+        endif()
+    endforeach(COMPILER_SET)
+
+    set(${COMPATIBLE_COMPILER_SET_VAR} ${COMPILER_ID} PARENT_SCOPE)
 endfunction(fob_get_binary_compatible_compilers) 
 
 # Checks whether a build configuration root directory (CFG_DIR formed as 
@@ -81,24 +84,23 @@ endfunction(fob_get_binary_compatible_compilers)
 # contains an installation of the package that is compatible with the
 # current build configuration and the requested configuration arguments 
 # (CFG_ARGS). The result is placed in the variable named by OUTVAR.
-function(_does_cfg_dir_match_args OUTVAR CFG_DIR CFG_ARGS)
+function(_does_cfg_dir_match_args OUTVAR MODULE_NAME CFG_DIR CFG_ARGS)
     unset(FOB_IS_COMPATIBLE)
-    include(${CFG_DIR}/GenericConfigCompatibility.cmake)
+    include(${CFG_DIR}/compatibility/Generic.cmake)
     if(NOT FOB_IS_COMPATIBLE)
-        set(${OUTVAR} ${FOB_IS_COMPATIBLE})
+        set(${OUTVAR} OFF PARENT_SCOPE)
         return()
     endif()
     foreach(REQUIRED_CFG ${CFG_ARGS})
         set(ARG_REGEX "^-D\\s*([a-zA-Z_][0-9a-zA-Z_]*)=(.*)")
-        set(REQ_ITEM_MET false)
         if(REQUIRED_CFG MATCHES ${ARG_REGEX})
-            set(REQUIRED_ARG_NAME ${CMAKE_MATCH_0})
-            set(REQUIRED_ARG_VALUE ${CMAKE_MATCH_1})
-            set(FOB_${REQUIRED_ARG_NAME} ${REQUIRED_ARG_VALUE})
+            set(REQUIRED_ARG_NAME ${CMAKE_MATCH_1})
+            set(REQUIRED_ARG_VALUE ${CMAKE_MATCH_2})
+            set(${REQUIRED_ARG_NAME} ${REQUIRED_ARG_VALUE})
         endif()
     endforeach(REQUIRED_CFG)
-    include(${CFG_DIR}/SpecificConfigCompatibility.cmake OPTIONAL)
-    set(${OUTVAR} ${FOB_IS_COMPATIBLE})
+    include(${CFG_DIR}/compatibility/${MODULE_NAME}.cmake OPTIONAL)
+    set(${OUTVAR} ${FOB_IS_COMPATIBLE} PARENT_SCOPE)
 endfunction(_does_cfg_dir_match_args)
 
 # Get a list of install prefix paths within ${FOB_STORAGE_ROOT} for the 
@@ -118,10 +120,12 @@ function(_get_all_paths_for_package_in_fob_storage PACKAGE_NAME PATHS_VAR)
     list(TRANSFORM VERSION_DIRS APPEND /*)
     file(GLOB CONFIG_DIRS LIST_DIRECTORIES true ${VERSION_DIRS})
     list(FILTER CONFIG_DIRS EXCLUDE REGEX "(download|src)")
-    if(CFG_ARGS)
+    if(ARG_CFG_ARGS)
         set(MATCHING_CFG_DIRS)
         foreach(CFG_DIR ${CONFIG_DIRS})
-            _does_cfg_dir_match_args(IS_MATCH CFG_DIR ${CFG_ARGS})
+            unset(IS_MATCH)
+            _does_cfg_dir_match_args(
+                IS_MATCH ${PACKAGE_NAME} ${CFG_DIR} "${ARG_CFG_ARGS}")
             if(IS_MATCH)
                 list(APPEND MATCHING_CFG_DIRS ${CFG_DIR})
             endif()
@@ -142,11 +146,11 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL)
     set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG 
-        "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${ARGN})
+    cmake_parse_arguments(_FFPOO
+        "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${FIND_ARGS})
 
-    if(_FOBARG_CFG_ARGS)
-        set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FOBARG_CFG_ARGS})
+    if(_FFPOO_CFG_ARGS)
+        set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FFPOO_CFG_ARGS})
     else()
         unset(_FOB_CFG_ARGS_SETTING)
     endif()
@@ -160,7 +164,7 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
         ${PACKAGE_NAME} PKG_PATHS ${_FOB_CFG_ARGS_SETTING})
     
     find_package(${PACKAGE_NAME}
-        ${FIND_ARGS} NO_DEFAULT_PATH PATHS ${PKG_PATHS})
+        ${_FFPOO_UNPARSED_ARGUMENTS} NO_DEFAULT_PATH PATHS ${PKG_PATHS})
     
     fob_pop_var(CMAKE_FIND_FRAMEWORK)
     fob_pop_var(CMAKE_FIND_APPBUNDLE)
@@ -174,14 +178,7 @@ endmacro(_fob_find_package_ours_only)
 # system packages otherwise. The CFG_ARGS, if provided, must be part of 
 # FIND_ARGS. 
 macro(_fob_find_package_first_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
-    set(_FOB_OPTIONS)
-    set(_FOB_SINGLE_VAL)
-    set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG 
-        "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${FIND_ARGS})
-
-    if (CFG_ARGS OR 
-        USE_SYS_PACKAGES STREQUAL LAST OR USE_SYS_PACKAGES STREQUAL NEVER)
+    if (${USE_SYS_PACKAGES} STREQUAL LAST OR ${USE_SYS_PACKAGES} STREQUAL NEVER)
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
     else()
         find_package(${PACKAGE_NAME} ${FIND_ARGS})
@@ -196,14 +193,8 @@ endmacro(_fob_find_package_first_attempt)
 # system packages otherwise. The CFG_ARGS, if provided, must be part of 
 # FIND_ARGS. 
 macro(_fob_find_package_second_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
-    set(_FOB_OPTIONS)
-    set(_FOB_SINGLE_VAL)
-    set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG 
-        "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${FIND_ARGS})
-
-    if (CFG_ARGS OR 
-        USE_SYS_PACKAGES STREQUAL FIRST OR USE_SYS_PACKAGES STREQUAL NEVER)
+    if (${USE_SYS_PACKAGES} STREQUAL FIRST OR 
+        ${USE_SYS_PACKAGES} STREQUAL NEVER)
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
     else()
         find_package(${PACKAGE_NAME} ${FIND_ARGS})
@@ -228,7 +219,7 @@ macro(_fob_find_in_existing_packages USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
     # First we need to see if the package can be found, so if a REQUIRED clause
     # is present, we remove it for the time being so the call doesn't fail.
     set(_FOB_MODIFIED_ARGS ${FIND_ARGS})
-    if (NOT ${USE_SYS_PACKAGES} STREQUAL ALWAYS AND FOB_ENABLE_PACKAGE_RETRIEVE)
+    if (NOT USE_SYS_PACKAGES STREQUAL ALWAYS AND FOB_ENABLE_PACKAGE_RETRIEVE)
         list(REMOVE_ITEM _FOB_MODIFIED_ARGS REQUIRED)
     endif()
     
@@ -236,6 +227,10 @@ macro(_fob_find_in_existing_packages USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
         ${USE_SYS_PACKAGES} ${PACKAGE_NAME} "${_FOB_MODIFIED_ARGS}")
     
     _fob_is_package_found(${PACKAGE_NAME} _FOB_PKG_FOUND)
+
+    if(NOT FOB_ENABLE_PACKAGE_RETRIEVE)
+        set(_FOB_MODIFIED_ARGS ${FIND_ARGS})
+    endif()
 
     if(NOT _FOB_PKG_FOUND AND 
         (${USE_SYS_PACKAGES} STREQUAL FIRST 
@@ -457,13 +452,6 @@ function(_fob_download_build_install_package PACKAGE_NAME)
         endif()
     endif()
 
-    if(ARG_CFG_ARGS)
-        set(REQUESTED_CFG_ARGS_SETTING
-            "-DREQUESTED_CFG_ARGS:STRING=${REQUESTED_CFG_ARGS}")
-    else()
-        set(REQUESTED_CFG_ARGS_SETTING)
-    endif()
-
     _download_fob_module_if_not_exists(retrievers/${PACKAGE_NAME})
 
     _fob_include_and_build_in_cmake_time(
@@ -479,7 +467,7 @@ function(_fob_download_build_install_package PACKAGE_NAME)
             -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
             "-DCMAKE_CONFIGURATION_TYPES:STRING=${CMAKE_CONFIGURATION_TYPES}"
             ${REQUESTED_VER_CACHE_SETTING}
-            ${REQUESTED_CFG_ARGS_SETTING}
+            ${ARG_CFG_ARGS}
     )
 endfunction(_fob_download_build_install_package)
 
@@ -534,15 +522,18 @@ macro(fob_find_or_build PACKAGE_NAME)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL USE_SYSTEM_PACKAGES)
     set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG
+    cmake_parse_arguments(_FFOB
         "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${ARGN})
 
-    if(CFG_ARGS)
-        set(_FOBARG_USE_SYSTEM_PACKAGES NEVER)
+    if(_FFOB_CFG_ARGS)
+        set(_FFOB_USE_SYSTEM_PACKAGES NEVER)
+        set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FFOB_CFG_ARGS})
+    else ()
+        set(_FOB_CFG_ARGS_SETTING)
     endif()
 
-    if(_FOBARG_UNPARSED_ARGUMENTS)
-        list(GET _FOBARG_UNPARSED_ARGUMENTS 0 _FOB_FIND_PKG_VER_ARG)
+    if(_FFOB_UNPARSED_ARGUMENTS)
+        list(GET _FFOB_UNPARSED_ARGUMENTS 0 _FOB_FIND_PKG_VER_ARG)
         _fob_is_valid_version(
             _FOB_FIND_PKG_VER_ARG ${_FOB_FIND_PKG_VER_ARG})
     else()
@@ -550,27 +541,21 @@ macro(fob_find_or_build PACKAGE_NAME)
     endif()
 
     fob_set_default_var_value(
-        _FOBARG_USE_SYSTEM_PACKAGES ${FOB_USE_SYSTEM_PACKAGES_OPTION})
+        _FFOB_USE_SYSTEM_PACKAGES ${FOB_USE_SYSTEM_PACKAGES_OPTION})
 
-    _fob_find_in_existing_packages(${_FOBARG_USE_SYSTEM_PACKAGES}
-        ${PACKAGE_NAME} "${_FOBARG_UNPARSED_ARGUMENTS}")
+    _fob_find_in_existing_packages(${_FFOB_USE_SYSTEM_PACKAGES}
+        ${PACKAGE_NAME} "${_FFOB_UNPARSED_ARGUMENTS};${_FOB_CFG_ARGS_SETTING}")
     
     _fob_is_package_found(${PACKAGE_NAME} _FOB_PACKAGE_FOUND)
     if(NOT _FOB_PACKAGE_FOUND AND 
-        NOT _FOBARG_USE_SYSTEM_PACKAGES STREQUAL ALWAYS
+        NOT _FFOB_USE_SYSTEM_PACKAGES STREQUAL ALWAYS
         AND FOB_ENABLE_PACKAGE_RETRIEVE)
         message(STATUS "Unable to find ${PACKAGE_NAME}: Trying to build ...")
 
-        if (_FOBARG_CFG_ARGS)
-            set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FOBARG_CFG_ARGS})
-        else ()
-            unset(_FOB_CFG_ARGS_SETTING)
-        endif ()
-    
         _fob_download_build_install_package(
             ${PACKAGE_NAME} ${_FOB_FIND_PKG_VER_ARG} ${_FOB_CFG_ARGS_SETTING})
 
-        _fob_find_in_existing_packages(NEVER ${PACKAGE_NAME}
-            "${_FOB_CFG_ARGS_SETTING}" "${_FOBARG_UNPARSED_ARGUMENTS}")
+        _fob_find_package_ours_only(${PACKAGE_NAME}
+            "${_FFOB_UNPARSED_ARGUMENTS};${_FOB_CFG_ARGS_SETTING}")
     endif()
 endmacro(fob_find_or_build)

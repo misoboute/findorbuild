@@ -29,14 +29,12 @@ endif()
 fob_set_default_var_value(BOOST_THREADING multi)
 fob_set_default_var_value(BOOST_RUNTIME_LINK ${BOOST_LINK})
 
-fob_normalize_version_number(FOB_REQUESTED_VERSION)
-string(REGEX REPLACE "\\.[0-9]$" "" 
-    FOB_REQUESTED_VERSION ${FOB_REQUESTED_VERSION})
-
+fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 if(NOT FOB_REQUESTED_VERSION IN_LIST BOOST_VERSIONS AND
     FOB_REQUESTED_VERSION VERSION_LESS BOOST_LATEST_VERSION)
     set(FOB_REQUESTED_VERSION ${BOOST_LATEST_VERSION})
 endif()
+fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 set(VERSION_GIT_TAG boost-${FOB_REQUESTED_VERSION})
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -99,9 +97,14 @@ ExternalProject_Add_Step(
     COMMAND ${BOOST_BOOTSTRAP_COMMAND}
 )
 
-# To see what values could be set for the toolset, search for `<toolset>`
-# within the jamfiles throughout the boost source. Other values are: clang, gcc,
-# intel-linux, msvc.
+# To see what values could be set for the toolset, check either of the documents
+# "Getting Started on Windows" or "Getting Started on Unix Variants"
+# in Boost documentation.
+# https://www.boost.org/doc/libs/1_77_0/more/getting_started/index.html
+set(BORLAND_COMPILERS Embarcadero Borland)
+set(IBM_COMPILERS XL XLClang VisualAge zOS)
+set(INTEL_COMPILERS Intel IntelLLVM)
+
 if(MSVC)
     if(MSVC_TOOLSET_VERSION STREQUAL 142)
         set(BOOST_BUILD_TOOLSET msvc-14.2)
@@ -126,15 +129,15 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL CLANG)
     set(BOOST_BUILD_TOOLSET clang)
 elseif(CMAKE_C_COMPILER_ID STREQUAL GCC)
     set(BOOST_BUILD_TOOLSET gcc)
-elseif(CMAKE_C_COMPILER_ID IN_LIST Borland Embarcadero)
+elseif(CMAKE_C_COMPILER_ID IN_LIST BORLAND_COMPILERS)
     set(BOOST_BUILD_TOOLSET borland)
 elseif(CMAKE_C_COMPILER_ID STREQUAL HP)
     set(BOOST_BUILD_TOOLSET acc)
-elseif(CMAKE_C_COMPILER_ID IN_LIST Intel IntelLLVM)
+elseif(CMAKE_C_COMPILER_ID IN_LIST INTEL_COMPILERS)
     set(BOOST_BUILD_TOOLSET intel)
 elseif(CMAKE_C_COMPILER_ID STREQUAL SunPro)
     set(BOOST_BUILD_TOOLSET sun)
-elseif(CMAKE_C_COMPILER_ID IN_LIST XL XLClang VisualAge zOS)
+elseif(CMAKE_C_COMPILER_ID IN_LIST IBM_COMPILERS)
     set(BOOST_BUILD_TOOLSET vacpp)
 endif()
 

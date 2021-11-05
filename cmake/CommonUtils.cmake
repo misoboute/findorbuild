@@ -33,3 +33,14 @@ function(fob_pop_var VAR_NAME)
         unset(${VAR_NAME} PARENT_SCOPE)
     endif()
 endfunction(fob_pop_var)
+
+# Compares two variables representing boolean values and sets the specified
+# output variable to ON if they both represent the same boolean value and
+# to OFF otherwise.
+function(fob_are_bools_equal OUTVAR BOOL1 BOOL2)
+    set(RESULT OFF)
+    if(BOOL1 AND BOOL2 OR NOT BOOL1 AND NOT BOOL2)
+        set(RESULT ON)
+    endif()
+    set(${OUTVAR} ${RESULT} PARENT_SCOPE)
+endfunction()
