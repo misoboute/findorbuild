@@ -142,11 +142,11 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL)
     set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG 
+    cmake_parse_arguments(_FFPOO
         "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${ARGN})
 
-    if(_FOBARG_CFG_ARGS)
-        set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FOBARG_CFG_ARGS})
+    if(_FFPOO_CFG_ARGS)
+        set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FFPOO_CFG_ARGS})
     else()
         unset(_FOB_CFG_ARGS_SETTING)
     endif()
@@ -177,10 +177,10 @@ macro(_fob_find_package_first_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL)
     set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG 
+    cmake_parse_arguments(_FFPFA 
         "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${FIND_ARGS})
 
-    if (CFG_ARGS OR 
+    if (_FFPFA_CFG_ARGS OR 
         USE_SYS_PACKAGES STREQUAL LAST OR USE_SYS_PACKAGES STREQUAL NEVER)
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
     else()
@@ -199,10 +199,10 @@ macro(_fob_find_package_second_attempt USE_SYS_PACKAGES PACKAGE_NAME FIND_ARGS)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL)
     set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG 
+    cmake_parse_arguments(_FFPSA 
         "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${FIND_ARGS})
 
-    if (CFG_ARGS OR 
+    if (_FFPSA_CFG_ARGS OR 
         USE_SYS_PACKAGES STREQUAL FIRST OR USE_SYS_PACKAGES STREQUAL NEVER)
         _fob_find_package_ours_only(${PACKAGE_NAME} "${FIND_ARGS}")
     else()
@@ -534,15 +534,15 @@ macro(fob_find_or_build PACKAGE_NAME)
     set(_FOB_OPTIONS)
     set(_FOB_SINGLE_VAL USE_SYSTEM_PACKAGES)
     set(_FOB_MULTI_VAL CFG_ARGS)
-    cmake_parse_arguments(_FOBARG
+    cmake_parse_arguments(_FFOB
         "${_FOB_OPTIONS}" "${_FOB_SINGLE_VAL}" "${_FOB_MULTI_VAL}" ${ARGN})
 
     if(CFG_ARGS)
-        set(_FOBARG_USE_SYSTEM_PACKAGES NEVER)
+        set(_FFOB_USE_SYSTEM_PACKAGES NEVER)
     endif()
 
-    if(_FOBARG_UNPARSED_ARGUMENTS)
-        list(GET _FOBARG_UNPARSED_ARGUMENTS 0 _FOB_FIND_PKG_VER_ARG)
+    if(_FFOB_UNPARSED_ARGUMENTS)
+        list(GET _FFOB_UNPARSED_ARGUMENTS 0 _FOB_FIND_PKG_VER_ARG)
         _fob_is_valid_version(
             _FOB_FIND_PKG_VER_ARG ${_FOB_FIND_PKG_VER_ARG})
     else()
@@ -550,19 +550,19 @@ macro(fob_find_or_build PACKAGE_NAME)
     endif()
 
     fob_set_default_var_value(
-        _FOBARG_USE_SYSTEM_PACKAGES ${FOB_USE_SYSTEM_PACKAGES_OPTION})
+        _FFOB_USE_SYSTEM_PACKAGES ${FOB_USE_SYSTEM_PACKAGES_OPTION})
 
-    _fob_find_in_existing_packages(${_FOBARG_USE_SYSTEM_PACKAGES}
-        ${PACKAGE_NAME} "${_FOBARG_UNPARSED_ARGUMENTS}")
+    _fob_find_in_existing_packages(${_FFOB_USE_SYSTEM_PACKAGES}
+        ${PACKAGE_NAME} "${_FFOB_UNPARSED_ARGUMENTS}")
     
     _fob_is_package_found(${PACKAGE_NAME} _FOB_PACKAGE_FOUND)
     if(NOT _FOB_PACKAGE_FOUND AND 
-        NOT _FOBARG_USE_SYSTEM_PACKAGES STREQUAL ALWAYS
+        NOT _FFOB_USE_SYSTEM_PACKAGES STREQUAL ALWAYS
         AND FOB_ENABLE_PACKAGE_RETRIEVE)
         message(STATUS "Unable to find ${PACKAGE_NAME}: Trying to build ...")
 
-        if (_FOBARG_CFG_ARGS)
-            set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FOBARG_CFG_ARGS})
+        if (_FFOB_CFG_ARGS)
+            set(_FOB_CFG_ARGS_SETTING CFG_ARGS ${_FFOB_CFG_ARGS})
         else ()
             unset(_FOB_CFG_ARGS_SETTING)
         endif ()
@@ -571,6 +571,6 @@ macro(fob_find_or_build PACKAGE_NAME)
             ${PACKAGE_NAME} ${_FOB_FIND_PKG_VER_ARG} ${_FOB_CFG_ARGS_SETTING})
 
         _fob_find_in_existing_packages(NEVER ${PACKAGE_NAME}
-            "${_FOB_CFG_ARGS_SETTING}" "${_FOBARG_UNPARSED_ARGUMENTS}")
+            "${_FOB_CFG_ARGS_SETTING}" "${_FFOB_UNPARSED_ARGUMENTS}")
     endif()
 endmacro(fob_find_or_build)
