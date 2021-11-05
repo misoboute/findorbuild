@@ -278,7 +278,6 @@ function(fob_find_vcvarsall OUTVAR)
         set(_VCVARS_CMD CALL ${_VCVARSALL_BAT} ${_VCVARSALL_ARG})
     endif(ARG_STRING)
 
-    message("_VCVARSALL_BAT: ${_VCVARSALL_BAT}")
     if(_VCVARSALL_BAT)
         set(${OUTVAR} ${_VCVARS_CMD} PARENT_SCOPE)
     else(_VCVARSALL_BAT)
@@ -354,7 +353,6 @@ function(fob_add_ext_cmake_project NAME VERSION)
         ${ARG_UNPARSED_ARGUMENTS}
     )
 
-    message("CMAKE_CONFIGURATION_TYPES: ${CMAKE_CONFIGURATION_TYPES}")
     if(NOT CMAKE_CONFIGURATION_TYPES)
         if(NOT CMAKE_BUILD_TYPE)
             set(OPT_CFG_TYPES Release)

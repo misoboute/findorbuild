@@ -13,9 +13,10 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH ${FOBTEST_MODULE_PATH})
 
-message("CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
-
 include(FOBBootstrap)
 
 fob_find_or_build(GTest 1.10 REQUIRED)
+if(NOT GTest_FOUND)
+    message(FATAL_ERROR "NOT FOUND")
+endif()
 # fob_find_or_build(Boost)
