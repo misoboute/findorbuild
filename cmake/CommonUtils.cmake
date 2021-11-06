@@ -39,7 +39,7 @@ endfunction(fob_pop_var)
 # to OFF otherwise.
 function(fob_are_bools_equal OUTVAR BOOL1 BOOL2)
     set(RESULT OFF)
-    if(BOOL1 AND BOOL2 OR NOT BOOL1 AND NOT BOOL2)
+    if((BOOL1 AND BOOL2) OR ((NOT BOOL1) AND (NOT BOOL2)))
         set(RESULT ON)
     endif()
     set(${OUTVAR} ${RESULT} PARENT_SCOPE)

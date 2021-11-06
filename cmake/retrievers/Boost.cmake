@@ -18,16 +18,17 @@ set(BOOST_VERSIONS
 
 list(GET BOOST_VERSIONS -1 BOOST_LATEST_VERSION)
 
-fob_set_default_var_value(FOB_REQUESTED_VERSION 1.77.0)
+fob_set_default_var_value(FOB_REQUESTED_VERSION ${BOOST_LATEST_VERSION})
 if(WIN32)
     fob_set_default_var_value(BOOST_VARIANT debug release)
     fob_set_default_var_value(BOOST_LINK static)
+    fob_set_default_var_value(BOOST_RUNTIME_LINK static)
 else()
     fob_set_default_var_value(BOOST_VARIANT release)
     fob_set_default_var_value(BOOST_LINK static shared)
+    fob_set_default_var_value(BOOST_RUNTIME_LINK static)
 endif()
 fob_set_default_var_value(BOOST_THREADING multi)
-fob_set_default_var_value(BOOST_RUNTIME_LINK ${BOOST_LINK})
 
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 if(NOT FOB_REQUESTED_VERSION IN_LIST BOOST_VERSIONS AND
@@ -67,7 +68,7 @@ elseif(UNIX)
     set(BOOST_B2_COMMAND ./b2)
 endif(WIN32)
 
-fob_setup_extproj_dirs(boost ${FOB_REQUESTED_VERSION})
+fob_setup_extproj_dirs(Boost ${FOB_REQUESTED_VERSION})
 
 fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Boost)
 
@@ -125,9 +126,9 @@ if(MSVC)
     endif()
 elseif(APPLE)
     set(BOOST_BUILD_TOOLSET darwin)
-elseif(CMAKE_C_COMPILER_ID STREQUAL CLANG)
+elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
     set(BOOST_BUILD_TOOLSET clang)
-elseif(CMAKE_C_COMPILER_ID STREQUAL GCC)
+elseif(CMAKE_C_COMPILER_ID STREQUAL GNU)
     set(BOOST_BUILD_TOOLSET gcc)
 elseif(CMAKE_C_COMPILER_ID IN_LIST BORLAND_COMPILERS)
     set(BOOST_BUILD_TOOLSET borland)
