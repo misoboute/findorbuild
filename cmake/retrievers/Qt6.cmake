@@ -31,6 +31,9 @@ endif()
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 set(VERSION_GIT_TAG v${FOB_REQUESTED_VERSION})
 
+# TODO (add build customization variables)
+# fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} ${NAME})
+
 fob_add_ext_cmake_project(
     Qt6 ${FOB_REQUESTED_VERSION}
     GIT_REPOSITORY https://code.qt.io/qt/qt5.git
@@ -38,6 +41,7 @@ fob_add_ext_cmake_project(
     GIT_SHALLOW true
     GIT_PROGRESS true
     GIT_SUBMODULES ""
+    UPDATE_COMMAND ""
     BUILD_DISTINGUISHING_VARS 
         BUILD_SHARED_LIBS
     CMAKE_CACHE_ARGS
@@ -48,7 +52,7 @@ fob_add_ext_cmake_project(
 
 ExternalProject_Add_Step(FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
-    COMMAND ./init-repository
+    COMMAND ./init-repository -f
     WORKING_DIRECTORY <SOURCE_DIR>
     DEPENDEES download
     DEPENDERS update
