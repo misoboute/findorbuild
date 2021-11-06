@@ -52,7 +52,7 @@ fob_add_ext_cmake_project(
 
 ExternalProject_Add_Step(FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
-    COMMAND ./init-repository -f
+    COMMAND ./init-repository
     WORKING_DIRECTORY <SOURCE_DIR>
     DEPENDEES download
     DEPENDERS update
