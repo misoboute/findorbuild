@@ -3,8 +3,11 @@
 # fob_find_or_build. It is expected to set the variable FOB_IS_COMPATIBLE to 
 # true or false.
 
-if(BUILD_SHARED_LIBS EQUAL @BUILD_SHARED_LIBS@)
-    set(FOB_IS_COMPATIBLE true)
+fob_are_bools_equal(BUILD_SHARED_LIBS_COMPATIBLE
+    ${BUILD_SHARED_LIBS} @BUILD_SHARED_LIBS@)
+
+if(BUILD_SHARED_LIBS_COMPATIBLE)
+    set(FOB_IS_COMPATIBLE ON)
 else()
-    set(FOB_IS_COMPATIBLE false)
+    set(FOB_IS_COMPATIBLE OFF)
 endif()

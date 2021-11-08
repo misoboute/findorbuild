@@ -21,7 +21,7 @@ set(QT6_VERSIONS
 list(GET QT6_VERSIONS -1 QT6_LATEST_VERSION)
 
 fob_set_default_var_value(FOB_REQUESTED_VERSION ${QT6_LATEST_VERSION})
-fob_set_default_var_value(BUILD_SHARED_LIBS OFF)
+fob_set_default_var_value(BUILD_SHARED_LIBS ON)
 
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 if(NOT FOB_REQUESTED_VERSION IN_LIST GTEST_VERSIONS AND
@@ -31,28 +31,59 @@ endif()
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 set(VERSION_GIT_TAG v${FOB_REQUESTED_VERSION})
 
-# TODO (add build customization variables)
-# fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} ${NAME})
+fob_setup_extproj_dirs(Qt6 ${FOB_REQUESTED_VERSION} BUILD_SHARED_LIBS)
 
-fob_add_ext_cmake_project(
-    Qt6 ${FOB_REQUESTED_VERSION}
+fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Qt6)
+
+set(CONFIGURE_OPTIONS -prefix <INSTALL_DIR>)
+
+if(BUILD_SHARED_LIBS)
+    list(APPEND CONFIGURE_OPTIONS -shared)
+else()
+    list(APPEND CONFIGURE_OPTIONS -static)
+endif()
+
+if(GENERATOR_IS_MULTI_CONFIG)
+    list(APPEND CONFIGURE_OPTIONS -debug-and-release)
+else()
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" UC_BUILD_TYPE)
+    if(UC_BUILD_TYPE STREQUAL RELEASE)
+        list(APPEND CONFIGURE_OPTIONS -release)
+    elseif(UC_BUILD_TYPE STREQUAL DEBUG)
+        list(APPEND CONFIGURE_OPTIONS -debug -optimize-debug)
+    elseif(UC_BUILD_TYPE STREQUAL MINSIZEREL)
+        list(APPEND CONFIGURE_OPTIONS -release -optimize-size)
+    elseif(UC_BUILD_TYPE STREQUAL RELWITHDEBINFO)
+        list(APPEND CONFIGURE_OPTIONS -release -force-debug-info)
+    endif()
+endif()
+
+ExternalProject_Add(
+    FOB_Qt6
     GIT_REPOSITORY https://code.qt.io/qt/qt5.git
     GIT_TAG ${VERSION_GIT_TAG}
     GIT_SHALLOW true
     GIT_PROGRESS true
     GIT_SUBMODULES ""
     UPDATE_COMMAND ""
-    BUILD_DISTINGUISHING_VARS 
-        BUILD_SHARED_LIBS
-    CMAKE_CACHE_ARGS
-        -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
-        -DBUILD_EXAMPLES:BOOL=OFF
-        -DBUILD_TESTING:BOOL=OFF
+    DOWNLOAD_DIR ${DOWNLOAD_DIR}
+    SOURCE_DIR ${SOURCE_DIR}
+    BINARY_DIR ${BINARY_DIR}
+    TMP_DIR ${TEMP_DIR}
+    STAMP_DIR ${STAMP_DIR}
+    LOG_DIR ${LOG_DIR}
+    INSTALL_DIR ${INSTALL_DIR}
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure ${CONFIGURE_OPTIONS} --
+        -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
+        -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
+        "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
 )
 
-ExternalProject_Add_Step(FOB_Qt6 init_repository
+ExternalProject_Add_Step(
+    FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
-    COMMAND ./init-repository
+    COMMAND ./init-repository -f
     WORKING_DIRECTORY <SOURCE_DIR>
     DEPENDEES download
     DEPENDERS update
