@@ -73,7 +73,8 @@ ExternalProject_Add(
     STAMP_DIR ${STAMP_DIR}
     LOG_DIR ${LOG_DIR}
     INSTALL_DIR ${INSTALL_DIR}
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure ${CONFIGURE_OPTIONS} --
+    CONFIGURE_COMMAND 
+        <SOURCE_DIR>/configure$<$<BOOL:${WIN32}>:.bat> ${CONFIGURE_OPTIONS} --
         -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
         -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
@@ -83,7 +84,7 @@ ExternalProject_Add(
 ExternalProject_Add_Step(
     FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
-    COMMAND ./init-repository -f
+    COMMAND ./init-repository$<$<BOOL:${WIN32}>:.bat> -f
     WORKING_DIRECTORY <SOURCE_DIR>
     DEPENDEES download
     DEPENDERS update
