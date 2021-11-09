@@ -81,10 +81,12 @@ ExternalProject_Add(
         "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
 )
 
+fob_find_or_build(Perl REQUIRED)
+
 ExternalProject_Add_Step(
     FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
-    COMMAND ./init-repository$<$<BOOL:${WIN32}>:.bat> -f
+    COMMAND ${PERL_EXECUTABLE} ./init-repository -f
     WORKING_DIRECTORY <SOURCE_DIR>
     DEPENDEES download
     DEPENDERS update
