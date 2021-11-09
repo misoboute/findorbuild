@@ -1,3 +1,12 @@
+# NOTE: Qt configure script stores system configuration state in cache variables
+# so it won't have to compute them on every run. If the configure/build fails
+# and you change some system configuration (install libraries, etc) to fix
+# the issue and the configure/build still fails, it might be better to delete
+# the current build directory (${BINARY_DIR} set by fob_setup_extproj_dirs)
+# and try again. This is especially the case for missing features. For example,
+# if Qt configure fails because of missing OpenGL headers, then you install
+# the headers, the Qt config might still fail because of this issue.
+
 if(FOB_RETRIEVE_QT6_INCLUDED)
     return()
 endif(FOB_RETRIEVE_QT6_INCLUDED)
