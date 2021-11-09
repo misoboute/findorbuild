@@ -64,7 +64,7 @@ if(FOB_PACKAGE_UTILS_INCLUDED)
 endif(FOB_PACKAGE_UTILS_INCLUDED)
 set(FOB_PACKAGE_UTILS_INCLUDED 1)
 
-include(${FOB_MODULE_DIR}/CommonUtils.cmake)
+include(${FOB_MODULE_DIR}/FindOrBuild.cmake)
 include(ExternalProject)
 
 # Calculates the build description string. This string consists of a series of
