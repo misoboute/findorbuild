@@ -17,7 +17,8 @@ fob_set_default_var_value(WITH_OPENGL ON)
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 set(VERSION_GIT_TAG v${FOB_REQUESTED_VERSION})
 
-fob_setup_extproj_dirs(Qt6 ${FOB_REQUESTED_VERSION} BUILD_SHARED_LIBS)
+fob_setup_extproj_dirs(Qt6 ${FOB_REQUESTED_VERSION}
+    BUILD_SHARED_LIBS WITH_OPENGL)
 
 fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Qt6)
 
