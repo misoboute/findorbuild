@@ -3,9 +3,7 @@
 # and you change some system configuration (install libraries, etc) to fix
 # the issue and the configure/build still fails, it might be better to delete
 # the current build directory (${BINARY_DIR} set by fob_setup_extproj_dirs)
-# and try again. This is especially the case for missing features. For example,
-# if Qt configure fails because of missing OpenGL headers, then you install
-# the headers, the Qt config might still fail because of this issue.
+# and try again. This is especially the case for missing features.
 
 if(FOB_RETRIEVE_QT6_INCLUDED)
     return()
@@ -14,6 +12,7 @@ set(FOB_RETRIEVE_QT6_INCLUDED 1)
 
 fob_set_default_var_value(FOB_REQUESTED_VERSION 6.2.1)
 fob_set_default_var_value(BUILD_SHARED_LIBS ON)
+fob_set_default_var_value(WITH_OPENGL ON)
 
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 set(VERSION_GIT_TAG v${FOB_REQUESTED_VERSION})
@@ -28,6 +27,17 @@ if(BUILD_SHARED_LIBS)
     list(APPEND CONFIGURE_OPTIONS -shared)
 else()
     list(APPEND CONFIGURE_OPTIONS -static)
+endif()
+
+if(WITH_OPENGL)
+    find_package(OpenGL)
+    if(NOT OPENGL_FOUND)
+        message(FATAL_ERROR "To build Qt6 with OpenGL support install the \
+respective headers for your platform. To disable OpenGL support, set \
+WITH_OPENGL config arg to OFF.")
+    endif()
+else()
+    list(APPEND CONFIGURE_OPTIONS -shared)
 endif()
 
 if(GENERATOR_IS_MULTI_CONFIG)
