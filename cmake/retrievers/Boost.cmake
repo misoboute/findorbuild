@@ -3,22 +3,7 @@ if(FOB_RETRIEVE_BOOST_INCLUDED)
 endif(FOB_RETRIEVE_BOOST_INCLUDED)
 set(FOB_RETRIEVE_BOOST_INCLUDED 1)
 
-set(BOOST_VERSIONS 
-    "1.18.0" "1.18.2" "1.18.3" "1.19.0" "1.20.1" "1.20.2" "1.16.1" "1.17.0" 
-    "1.18.0" "1.18.2" "1.18.3" "1.19.0" "1.20.1" "1.20.2" "1.21.0" "1.21.1" 
-    "1.21.2" "1.22.0" "1.23.0" "1.24.0" "1.25.0" "1.25.1" "1.26.0" "1.27.0" 
-    "1.28.0" "1.29.0" "1.30.0" "1.30.1" "1.30.2" "1.31.0" "1.32.0" "1.33.0" 
-    "1.33.1" "1.34.0" "1.34.1" "1.35.0" "1.36.0" "1.37.0" "1.38.0" "1.39.0" 
-    "1.40.0" "1.41.0" "1.42.0" "1.43.0" "1.44.0" "1.45.0" "1.46.0" "1.46.1" 
-    "1.47.0" "1.48.0" "1.49.0" "1.50.0" "1.51.0" "1.52.0" "1.53.0" "1.54.0" 
-    "1.55.0" "1.56.0" "1.57.0" "1.58.0" "1.59.0" "1.60.0" "1.61.0" "1.62.0" 
-    "1.63.0" "1.64.0" "1.65.0" "1.65.1" "1.66.0" "1.67.0" "1.68.0" "1.69.0" 
-    "1.70.0" "1.71.0" "1.72.0" "1.73.0" "1.74.0" "1.75.0" "1.76.0" "1.77.0" 
-)
-
-list(GET BOOST_VERSIONS -1 BOOST_LATEST_VERSION)
-
-fob_set_default_var_value(FOB_REQUESTED_VERSION ${BOOST_LATEST_VERSION})
+fob_set_default_var_value(FOB_REQUESTED_VERSION 1.77.0)
 if(WIN32)
     fob_set_default_var_value(BOOST_VARIANT debug release)
     fob_set_default_var_value(BOOST_LINK static)
@@ -30,11 +15,6 @@ else()
 endif()
 fob_set_default_var_value(BOOST_THREADING multi)
 
-fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
-if(NOT FOB_REQUESTED_VERSION IN_LIST BOOST_VERSIONS AND
-    FOB_REQUESTED_VERSION VERSION_LESS BOOST_LATEST_VERSION)
-    set(FOB_REQUESTED_VERSION ${BOOST_LATEST_VERSION})
-endif()
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 set(VERSION_GIT_TAG boost-${FOB_REQUESTED_VERSION})
 
