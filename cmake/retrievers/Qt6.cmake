@@ -22,7 +22,7 @@ fob_setup_extproj_dirs(Qt6 ${FOB_REQUESTED_VERSION}
 
 fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Qt6)
 
-set(CONFIGURE_OPTIONS -prefix <INSTALL_DIR>)
+set(CONFIGURE_OPTIONS -prefix <INSTALL_DIR> -cmake-use-default-generator)
 
 if(BUILD_SHARED_LIBS)
     list(APPEND CONFIGURE_OPTIONS -shared)
@@ -56,6 +56,8 @@ else()
     endif()
 endif()
 
+fob_semicolon_escape_list(ESCAPED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
+
 ExternalProject_Add(
     FOB_Qt6
     GIT_REPOSITORY https://code.qt.io/qt/qt5.git
@@ -76,15 +78,22 @@ ExternalProject_Add(
         -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
         -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
-        "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
+        "-DCMAKE_PREFIX_PATH:STRING=${ESCAPED_CMAKE_PREFIX_PATH}"
 )
 
-fob_find_or_build(Perl REQUIRED)
+# TODO 1. All specific compatibility checkers must call a macro with a list 
+# of all the variables that they check. Also before including the checker 
+# script, _does_cfg_dir_match_args will populate a variable with the list
+# of all the variables that are being set. The macro called by the checker
+# script will set a flag indicating that the macro has been called and that
+# all the variables set before the script was included were expected by the
+# script. If the flag is not set, _does_cfg_dir_match_args should produce
+# a warning and skip the directory.
 
 ExternalProject_Add_Step(
     FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
-    COMMAND ${PERL_EXECUTABLE} ./init-repository -f
+    COMMAND ${PERL_EXECUTABLE} ./init-repository --quiet
     WORKING_DIRECTORY <SOURCE_DIR>
     DEPENDEES download
     DEPENDERS update

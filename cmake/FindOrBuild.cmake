@@ -52,6 +52,15 @@ function(fob_are_bools_equal OUTVAR BOOL1 BOOL2)
     set(${OUTVAR} ${RESULT} PARENT_SCOPE)
 endfunction()
 
+# Turns a ;-separated list into a string by joining the elements of the list
+# using the $<SEMICOLON> generator expression as glue. This should be used
+# when passing a ;-separated to a shell command that expects ;-separated lists.
+# This will prevent the list to be expanded into multiple arguments on the 
+# command line.
+macro(fob_semicolon_escape_list OUT_VAR)
+    string(JOIN $<SEMICOLON> RESULT ${ARGN})
+endmacro()(fob_semicolon_escape_list)
+
 # Get the path to the home directory of the user running cmake.
 function(fob_get_home_dir HOME_VAR)
     if (UNIX)
