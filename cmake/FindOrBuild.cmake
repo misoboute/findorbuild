@@ -471,6 +471,22 @@ function(_fob_is_valid_version OUT_IS_VERSION IN_STRING)
     endif()
 endfunction(_fob_is_valid_version)
 
+# Find the retriever module for the requested package within the current
+# CMAKE_MODULE_PATH and if not found, download the retriever module.
+# It stores the path to the module in the specified variable.
+function(_find_or_download_retriever_module MODULE_PATH_OUT_VAR PACKAGE_NAME)
+    foreach(MOD_PATH ${CMAKE_MODULE_PATH})
+        if(EXISTS ${MOD_PATH}/retrievers/${PACKAGE_NAME}.cmake)
+            set(${MODULE_PATH_OUT_VAR} 
+                ${MOD_PATH}/retrievers/${PACKAGE_NAME}.cmake PARENT_SCOPE)
+            return()
+        endif()
+    endforeach(MOD_PATH)
+    _download_fob_module_if_not_exists(retrievers/${PACKAGE_NAME})
+    set(${MODULE_PATH_OUT_VAR} 
+        ${FOB_MODULE_DIR}/retrievers/${PACKAGE_NAME}.cmake PARENT_SCOPE)
+endfunction(_find_or_download_retriever_module)
+
 # Start download, build, and installation of the package specified by 
 # PACKAGE_NAME, version (the argument immediately after name), and an 
 # optional set of build configuration arguments (CFG_ARGS).
@@ -495,15 +511,15 @@ function(_fob_download_build_install_package PACKAGE_NAME)
         endif()
     endif()
 
-    _download_fob_module_if_not_exists(retrievers/${PACKAGE_NAME})
+    _find_or_download_retriever_module(RETRIEVER_MODULE_PATH ${PACKAGE_NAME})
 
     _fob_include_and_build_in_cmake_time(
         PROJ_NAME Retrieve${PACKAGE_NAME}
-        MODULES ${FOB_MODULE_DIR}/retrievers/${PACKAGE_NAME}.cmake
+        MODULES ${RETRIEVER_MODULE_PATH}
         PROJ_PATH ${EXT_PROJ_PATH}
         CACHE_ARGS
-            -DFOB_MODULE_DIR=${FOB_MODULE_DIR}
-            -DFOB_STORAGE_ROOT=${FOB_STORAGE_ROOT}
+            -DFOB_MODULE_DIR:PATH=${FOB_MODULE_DIR}
+            -DFOB_STORAGE_ROOT:PATH=${FOB_STORAGE_ROOT}
             "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
             "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
             "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
