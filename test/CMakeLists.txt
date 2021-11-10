@@ -24,4 +24,5 @@ fob_find_or_build(GTest 1.10 REQUIRED
 #     message(FATAL_ERROR "Boost NOT FOUND")
 # endif()
 
-fob_find_or_build(Qt6 REQUIRED)
+fob_find_or_build(Qt6 Perl)
+# fob_find_or_build(Qt6 REQUIRED)

@@ -10,27 +10,57 @@ if(FOB_RETRIEVE_PERL_INCLUDED)
 endif(FOB_RETRIEVE_PERL_INCLUDED)
 set(FOB_RETRIEVE_PERL_INCLUDED 1)
 
-fob_set_default_var_value(FOB_REQUESTED_VERSION 6.2.1)
+fob_set_default_var_value(FOB_REQUESTED_VERSION 5.35.5)
 
 fob_normalize_version_number(FOB_REQUESTED_VERSION 3)
 set(VERSION_GIT_TAG v${FOB_REQUESTED_VERSION})
 
-fob_setup_extproj_dirs(Perl ${FOB_REQUESTED_VERSION}
-    BUILD_SHARED_LIBS WITH_OPENGL)
+fob_setup_extproj_dirs(Perl ${FOB_REQUESTED_VERSION})
 
-fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Perl)
+function(_fob_perl_patch_makefile_msvc MAKEFILE_PATH)
+    file(COPY_FILE ${MAKEFILE_PATH} ${MAKEFILE_PATH}.bk) 
+    file(READ ${MAKEFILE_PATH} MAKEFILE_CONTENTS)
 
+    set(PERL_MSVCVER "MSVC${MSVC_TOOLSET_VERSION}")
+    string(REGEX REPLACE "#(CCTYPE\\s*=\\s*${PERL_MSVCVER})"
+       "\\1" MAKEFILE_CONTENTS "${MAKEFILE_CONTENTS}")
 
-fob_semicolon_escape_list(ESCAPED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
+    cmake_path(GET INSTALL_DIR ROOT_NAME INST_DRV)
+    string(REGEX REPLACE "INST_DRV\\s*=\\s*([A-Za-z]:)"
+       "\\1" MAKEFILE_CONTENTS "${MAKEFILE_CONTENTS}")
+
+    cmake_path(GET INSTALL_DIR RELATIVE_PART PERL_INST_TOP)
+    cmake_path(NATIVE_PATH PERL_INST_TOP NORMALIZE PERL_INST_TOP)
+    string(REGEX REPLACE "(INST_TOP\\s*=\\s*\\$\\(INST_DRV\\)\\\\)perl"
+       "\\1${PERL_INST_TOP}" MAKEFILE_CONTENTS "${MAKEFILE_CONTENTS}")
+
+    file(WRITE ${MAKEFILE_PATH} "${MAKEFILE_CONTENTS}")
+endfunction(_fob_perl_patch_makefile_msvc)
+
+if(MSVC)
+    fob_find_vcvarsall(VCVARSALL STRING REQUIRED)
+    cmake_path(SET MAKE_DIR ${SOURCE_DIR}/win32)
+    cmake_path(NATIVE_PATH ${SOURCE_DIR}/win32 NORMALIZE MAKE_DIR_NATIVE)
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_run.bat
+"SET VSCMD_START_DIR=${MAKE_DIR_NATIVE}
+${VCVARSALL}
+CD \"${MAKE_DIR_NATIVE}\"
+nmake %1"
+    )
+    _fob_perl_patch_makefile_msvc(${MAKEFILE_PATH})
+    set(MAKE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/make_run.bat)
+    set(MAKE_INSTALL_COMMAND ${MAKE_COMMAND} install)
+else()
+    set(MAKE_COMMAND "")
+    set(MAKE_INSTALL_COMMAND "")
+endif()
 
 ExternalProject_Add(
     FOB_Perl
-    GIT_REPOSITORY https://code.qt.io/qt/qt5.git
+    GIT_REPOSITORY https://github.com/Perl/perl5.git
     GIT_TAG ${VERSION_GIT_TAG}
     GIT_SHALLOW true
     GIT_PROGRESS true
-    GIT_SUBMODULES ""
-    UPDATE_COMMAND ""
     DOWNLOAD_DIR ${DOWNLOAD_DIR}
     SOURCE_DIR ${SOURCE_DIR}
     BINARY_DIR ${BINARY_DIR}
@@ -38,12 +68,9 @@ ExternalProject_Add(
     STAMP_DIR ${STAMP_DIR}
     LOG_DIR ${LOG_DIR}
     INSTALL_DIR ${INSTALL_DIR}
-    CONFIGURE_COMMAND 
-        <SOURCE_DIR>/configure$<$<BOOL:${WIN32}>:.bat> ${CONFIGURE_OPTIONS} --
-        -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
-        -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
-        -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
-        "-DCMAKE_PREFIX_PATH:STRING=${ESCAPED_CMAKE_PREFIX_PATH}"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ${MAKE_COMMAND}
+    INSTALL_COMMAND ${MAKE_INSTALL_COMMAND}
 )
 
 # TODO 1. All specific compatibility checkers must call a macro with a list 
