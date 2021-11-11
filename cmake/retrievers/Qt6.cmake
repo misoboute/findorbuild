@@ -58,6 +58,8 @@ endif()
 
 fob_semicolon_escape_list(ESCAPED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
 
+cmake_path(GET CMAKE_COMMAND PARENT_PATH PATH_TO_CMAKE_BIN_DIR)
+
 ExternalProject_Add(
     FOB_Qt6
     GIT_REPOSITORY https://code.qt.io/qt/qt5.git
@@ -74,6 +76,7 @@ ExternalProject_Add(
     LOG_DIR ${LOG_DIR}
     INSTALL_DIR ${INSTALL_DIR}
     CONFIGURE_COMMAND 
+        ${CMAKE_COMMAND} -E env PATH="${PATH_TO_CMAKE_BIN_DIR};$ENV{PATH}"
         <SOURCE_DIR>/configure$<$<BOOL:${WIN32}>:.bat> ${CONFIGURE_OPTIONS} --
         -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
@@ -81,10 +84,12 @@ ExternalProject_Add(
         "-DCMAKE_PREFIX_PATH:STRING=${ESCAPED_CMAKE_PREFIX_PATH}"
 )
 
+fob_find_or_build(Perl REQUIRED)
+
 ExternalProject_Add_Step(
     FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
-    COMMAND ${PERL_EXECUTABLE} ./init-repository --quiet
+    COMMAND ${PERL_EXECUTABLE} <SOURCE_DIR>/init-repository --quiet
     WORKING_DIRECTORY <SOURCE_DIR>
     DEPENDEES download
     DEPENDERS update
