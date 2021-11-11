@@ -13,10 +13,11 @@ cmake_minimum_required(VERSION 3.15)
 set(FOB_ROOT_DIR_URL 
     https://raw.githubusercontent.com/misoboute/findorbuild/main)
 set(FOB_MODULE_DIR_URL ${FOB_ROOT_DIR_URL}/cmake)
-list(APPEND CMAKE_MODULE_PATH ${FOB_MODULE_DIR_URL})
 
 set(FOB_BINARY_ROOT_DIR ${CMAKE_BINARY_DIR}/fob)
 set(FOB_MODULE_DIR ${FOB_BINARY_ROOT_DIR}/cmake)
+
+list(APPEND CMAKE_MODULE_PATH ${FOB_MODULE_DIR})
 
 # Downloads a FOB module from the upstream repository if it hasn't already 
 # been downloaded.
@@ -38,4 +39,4 @@ endfunction(_download_fob_module_if_not_exists)
 _download_fob_module_if_not_exists(FindOrBuild) 
 _download_fob_module_if_not_exists(PackageUtils) 
 
-include(FindOrBuild OPTIONAL)
+include(FindOrBuild)
