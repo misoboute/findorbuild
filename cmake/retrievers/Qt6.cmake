@@ -81,15 +81,6 @@ ExternalProject_Add(
         "-DCMAKE_PREFIX_PATH:STRING=${ESCAPED_CMAKE_PREFIX_PATH}"
 )
 
-# TODO 1. All specific compatibility checkers must call a macro with a list 
-# of all the variables that they check. Also before including the checker 
-# script, _does_cfg_dir_match_args will populate a variable with the list
-# of all the variables that are being set. The macro called by the checker
-# script will set a flag indicating that the macro has been called and that
-# all the variables set before the script was included were expected by the
-# script. If the flag is not set, _does_cfg_dir_match_args should produce
-# a warning and skip the directory.
-
 ExternalProject_Add_Step(
     FOB_Qt6 init_repository
     COMMENT "Init/update submodules using init-repository"
