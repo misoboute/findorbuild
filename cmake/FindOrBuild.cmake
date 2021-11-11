@@ -59,7 +59,7 @@ endfunction()
 # command line.
 macro(fob_semicolon_escape_list OUT_VAR)
     string(JOIN $<SEMICOLON> RESULT ${ARGN})
-endmacro()(fob_semicolon_escape_list)
+endmacro(fob_semicolon_escape_list)
 
 # Get the path to the home directory of the user running cmake.
 function(fob_get_home_dir HOME_VAR)
