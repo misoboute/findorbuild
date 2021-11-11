@@ -96,6 +96,25 @@ option(FOB_ENABLE_PACKAGE_RETRIEVE
 are not found in system packages or those previously built and installed by us"
     true)
 
+# Call this macro within a specific compatibility checker module to declare
+# all variables that the module checks. Simply pass the names of variables 
+# to this macro. It will set or reset the compatibility flag.
+# If a non-declared variable is encountered in the requested arguments, 
+# it causes further processing of the compatibility module and 
+macro(fob_declare_compatibility_variables)
+    foreach(REQUEST_VAR ${FOB_REQUEST_CONFIG_VARIABLES})
+        if(NOT REQUEST_VAR IN_LIST ${ARGN})
+            message(WARNING "The requested config variable ${REQUEST_VAR} is \
+not declared by the compatibility module ${CMAKE_CURRENT_LIST_FILE}. Either \
+the compatibility file is from an older version or you are requesting a \
+nonexistent variable.")
+            set(FOB_IS_COMPATIBLE OFF)
+            # return from the compatibility module (not the macro)
+            return() 
+        endif()
+    endforeach(REQUEST_VAR)
+endmacro(fob_declare_compatibility_variables)
+
 # Get a list of compiler IDs that are binary compatible with the given 
 # compiler ID. This compatibility mapping is speculative and based on little 
 # research and almost no experiment. Its validity can be tested.
@@ -136,12 +155,14 @@ function(_does_cfg_dir_match_args OUTVAR MODULE_NAME CFG_DIR CFG_ARGS)
         set(${OUTVAR} ${FOB_IS_COMPATIBLE} PARENT_SCOPE)
         return()
     endif()
+    set(FOB_REQUEST_CONFIG_VARIABLES)
     foreach(REQUIRED_CFG ${CFG_ARGS})
         set(ARG_REGEX "^-D\\s*([a-zA-Z_][0-9a-zA-Z_]*)=(.*)")
         if(REQUIRED_CFG MATCHES ${ARG_REGEX})
             set(REQUIRED_ARG_NAME ${CMAKE_MATCH_1})
             set(REQUIRED_ARG_VALUE ${CMAKE_MATCH_2})
             set(${REQUIRED_ARG_NAME} ${REQUIRED_ARG_VALUE})
+            list(APPEND FOB_REQUEST_CONFIG_VARIABLES ${REQUIRED_ARG_NAME})
         endif()
     endforeach(REQUIRED_CFG)
     include(${CFG_DIR}/compatibility/${MODULE_NAME}.cmake OPTIONAL)
