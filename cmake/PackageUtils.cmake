@@ -124,7 +124,7 @@ function(fob_download_fob_file_if_not_exists FILE_PATH PATH_OUT_VAR)
         list(POP_FRONT DL_STAT ERRNO)
         if(ERRNO)
             list(POP_FRONT DL_STAT MSG)
-            if(NOWARN IN_LIST ARGN)
+            if("NOWARN" IN_LIST ARGN)
                 message(AUTHOR_WARNING
                     "Failed to download from ${URL} to ${LOCAL_PATH} => ${MSG}")
             endif()
