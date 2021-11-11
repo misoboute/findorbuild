@@ -102,8 +102,10 @@ are not found in system packages or those previously built and installed by us"
 # If a non-declared variable is encountered in the requested arguments, 
 # it causes further processing of the compatibility module and 
 macro(fob_declare_compatibility_variables)
+    set(FOB_COMPATIBILITY_VARIABLES_DECLARED ON)
+    set(_DELARED_VARIABLES "${ARGN}")
     foreach(REQUEST_VAR ${FOB_REQUEST_CONFIG_VARIABLES})
-        if(NOT REQUEST_VAR IN_LIST ${ARGN})
+        if(NOT (REQUEST_VAR IN_LIST _DELARED_VARIABLES))
             message(WARNING "The requested config variable ${REQUEST_VAR} is \
 not declared by the compatibility module ${CMAKE_CURRENT_LIST_FILE}. Either \
 the compatibility file is from an older version or you are requesting a \
@@ -165,7 +167,11 @@ function(_does_cfg_dir_match_args OUTVAR MODULE_NAME CFG_DIR CFG_ARGS)
             list(APPEND FOB_REQUEST_CONFIG_VARIABLES ${REQUIRED_ARG_NAME})
         endif()
     endforeach(REQUIRED_CFG)
+    set(FOB_COMPATIBILITY_VARIABLES_DECLARED OFF)
     include(${CFG_DIR}/compatibility/${MODULE_NAME}.cmake OPTIONAL)
+    if(NOT FOB_COMPATIBILITY_VARIABLES_DECLARED)
+        set(FOB_IS_COMPATIBLE ${FOB_COMPATIBILITY_VARIABLES_DECLARED})
+    endif()
     set(${OUTVAR} ${FOB_IS_COMPATIBLE} PARENT_SCOPE)
 endfunction(_does_cfg_dir_match_args)
 
