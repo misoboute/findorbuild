@@ -38,7 +38,7 @@ respective headers for your platform. To disable OpenGL support, set \
 WITH_OPENGL config arg to OFF.")
     endif()
 else()
-    list(APPEND CONFIGURE_OPTIONS -shared)
+    list(APPEND CONFIGURE_OPTIONS -no-opengl)
 endif()
 
 if(GENERATOR_IS_MULTI_CONFIG)
@@ -56,9 +56,24 @@ else()
     endif()
 endif()
 
-fob_semicolon_escape_list(ESCAPED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
+fob_find_or_build(Perl REQUIRED)
+cmake_path(GET PERL_EXECUTABLE PARENT_PATH Perl_BIN_DIR)
+cmake_path(GET Perl_BIN_DIR PARENT_PATH Perl_ROOT)
 
-cmake_path(GET CMAKE_COMMAND PARENT_PATH PATH_TO_CMAKE_BIN_DIR)
+list(APPEND CMAKE_PREFIX_PATH ${Perl_ROOT})
+
+set(CACHE_PRELOADER_ARGS
+    -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
+    -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
+    -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
+    -DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}
+    -DCMAKE_PROGRAM_PATH=${Perl_BIN_DIR}
+)
+
+fob_convert_cmdln_cache_args_to_cache_preloader(
+    ${BINARY_DIR}/CacheInit.txt "${CACHE_PRELOADER_ARGS}")
+
+list(APPEND CONFIGURE_OPTIONS -- -C ${BINARY_DIR}/CacheInit.txt)
 
 ExternalProject_Add(
     FOB_Qt6
@@ -76,15 +91,10 @@ ExternalProject_Add(
     LOG_DIR ${LOG_DIR}
     INSTALL_DIR ${INSTALL_DIR}
     CONFIGURE_COMMAND 
-        ${CMAKE_COMMAND} -E env PATH="${PATH_TO_CMAKE_BIN_DIR};$ENV{PATH}"
-        <SOURCE_DIR>/configure$<$<BOOL:${WIN32}>:.bat> ${CONFIGURE_OPTIONS} --
-        -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
-        -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
-        -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
-        "-DCMAKE_PREFIX_PATH:STRING=${ESCAPED_CMAKE_PREFIX_PATH}"
+        <SOURCE_DIR>/configure$<$<BOOL:WIN32>:.bat> ${CONFIGURE_OPTIONS}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
+    INSTALL_COMMAND ${CMAKE_COMMAND} --install <INSTALL_DIR>
 )
-
-fob_find_or_build(Perl REQUIRED)
 
 ExternalProject_Add_Step(
     FOB_Qt6 init_repository
