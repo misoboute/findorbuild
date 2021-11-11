@@ -191,8 +191,15 @@ endfunction(fob_normalize_version_number)
 # fob_download_fob_file_if_not_exists.
 function(fob_write_specific_compatibility_file CFG_DIR MODULE_NAME)
     unset(INPUT_FILE)
+    foreach(MOD_PATH ${CMAKE_MODULE_PATH})
+        if(EXISTS ${MOD_PATH}/compatibility/${MODULE_NAME}.in.cmake)
+            set(${MODULE_PATH_OUT_VAR} 
+                ${MOD_PATH}/compatibility/${MODULE_NAME}.in.cmake PARENT_SCOPE)
+            return()
+        endif()
+    endforeach(MOD_PATH)
     fob_download_fob_file_if_not_exists(
-        compatibility/${MODULE_NAME}.in.cmake INPUT_FILE ${ARGN})
+        cmake/compatibility/${MODULE_NAME}.in.cmake INPUT_FILE ${ARGN})
     if(INPUT_FILE)
         configure_file(
             ${INPUT_FILE} ${CFG_DIR}/compatibility/${MODULE_NAME}.cmake @ONLY)

@@ -442,7 +442,7 @@ function(_fob_include_and_build_in_cmake_time)
     set(LIST_FILE_CONTENTS
 "cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 ${PROJECT_LINE}
-set(CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
+list(APPEND CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
 include(\${FOB_MODULE_DIR}/PackageUtils.cmake)
 foreach(MOD \"${ARG_MODULES}\")
     include(\${MOD})
@@ -503,9 +503,9 @@ function(_find_or_download_retriever_module MODULE_PATH_OUT_VAR PACKAGE_NAME)
             return()
         endif()
     endforeach(MOD_PATH)
-    _download_fob_module_if_not_exists(retrievers/${PACKAGE_NAME})
-    set(${MODULE_PATH_OUT_VAR} 
-        ${FOB_MODULE_DIR}/retrievers/${PACKAGE_NAME}.cmake PARENT_SCOPE)
+    fob_download_fob_file_if_not_exists(
+        cmake/retrievers/${PACKAGE_NAME}.cmake FILE_PATH)
+    set(${MODULE_PATH_OUT_VAR} ${FILE_PATH} PARENT_SCOPE)
 endfunction(_find_or_download_retriever_module)
 
 # Start download, build, and installation of the package specified by 
@@ -541,6 +541,7 @@ function(_fob_download_build_install_package PACKAGE_NAME)
         CACHE_ARGS
             -DFOB_MODULE_DIR:PATH=${FOB_MODULE_DIR}
             -DFOB_STORAGE_ROOT:PATH=${FOB_STORAGE_ROOT}
+            "-DCMAKE_MODULE_PATH:STRING=${CMAKE_MODULE_PATH}"
             "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
             "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
             "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
