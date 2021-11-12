@@ -22,7 +22,7 @@ fob_setup_extproj_dirs(Qt6 ${FOB_REQUESTED_VERSION}
 
 fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Qt6)
 
-set(CONFIGURE_OPTIONS -prefix <INSTALL_DIR> -cmake-use-default-generator)
+set(CONFIGURE_OPTIONS -prefix <INSTALL_DIR> -cmake-generator ${CMAKE_GENERATOR})
 
 if(BUILD_SHARED_LIBS)
     list(APPEND CONFIGURE_OPTIONS -shared)
@@ -41,18 +41,19 @@ else()
     list(APPEND CONFIGURE_OPTIONS -no-opengl)
 endif()
 
-if(GENERATOR_IS_MULTI_CONFIG)
+get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(IS_MULTI_CONFIG)
     list(APPEND CONFIGURE_OPTIONS -debug-and-release)
 else()
     string(TOUPPER "${CMAKE_BUILD_TYPE}" UC_BUILD_TYPE)
-    if(UC_BUILD_TYPE STREQUAL RELEASE)
-        list(APPEND CONFIGURE_OPTIONS -release)
-    elseif(UC_BUILD_TYPE STREQUAL DEBUG)
-        list(APPEND CONFIGURE_OPTIONS -debug -optimize-debug)
+    if(UC_BUILD_TYPE STREQUAL DEBUG)
+        list(APPEND CONFIGURE_OPTIONS -debug)
     elseif(UC_BUILD_TYPE STREQUAL MINSIZEREL)
         list(APPEND CONFIGURE_OPTIONS -release -optimize-size)
     elseif(UC_BUILD_TYPE STREQUAL RELWITHDEBINFO)
         list(APPEND CONFIGURE_OPTIONS -release -force-debug-info)
+    else()
+        list(APPEND CONFIGURE_OPTIONS -release)
     endif()
 endif()
 
