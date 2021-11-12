@@ -92,7 +92,7 @@ ExternalProject_Add(
     LOG_DIR ${LOG_DIR}
     INSTALL_DIR ${INSTALL_DIR}
     CONFIGURE_COMMAND 
-        <SOURCE_DIR>/configure$<$<BOOL:WIN32>:.bat> ${CONFIGURE_OPTIONS}
+        <SOURCE_DIR>/configure$<$<BOOL:${WIN32}>:.bat> ${CONFIGURE_OPTIONS}
     BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
     INSTALL_COMMAND ${CMAKE_COMMAND} --install <INSTALL_DIR>
 )
