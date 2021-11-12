@@ -22,7 +22,7 @@ fob_setup_extproj_dirs(Qt6 ${FOB_REQUESTED_VERSION}
 
 fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Qt6)
 
-set(CONFIGURE_OPTIONS -prefix <INSTALL_DIR> -cmake-generator ${CMAKE_GENERATOR})
+set(CONFIGURE_OPTIONS -prefix <INSTALL_DIR>)
 
 if(BUILD_SHARED_LIBS)
     list(APPEND CONFIGURE_OPTIONS -shared)
