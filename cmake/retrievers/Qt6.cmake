@@ -94,7 +94,7 @@ ExternalProject_Add(
     CONFIGURE_COMMAND 
         <SOURCE_DIR>/configure$<$<BOOL:${WIN32}>:.bat> ${CONFIGURE_OPTIONS}
     BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
-    INSTALL_COMMAND ${CMAKE_COMMAND} --install <INSTALL_DIR>
+    INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR>
 )
 
 ExternalProject_Add_Step(
