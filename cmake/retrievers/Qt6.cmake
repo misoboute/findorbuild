@@ -107,7 +107,9 @@ ExternalProject_Add(
     LOG_DIR ${LOG_DIR}
     INSTALL_DIR ${INSTALL_DIR}
     CONFIGURE_COMMAND ${QT6_CONFIGURE_COMMAND} ${CONFIGURE_OPTIONS}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --parallel
+    # Parallel builds fails at random points. Seems like dpendencies are not
+    # compatible with parallel builds.
+    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
     INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR>
 )
 
