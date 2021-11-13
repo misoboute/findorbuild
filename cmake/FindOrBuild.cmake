@@ -14,6 +14,53 @@ if(FOB_FIND_OR_BUILD_INCLUDED)
 endif(FOB_FIND_OR_BUILD_INCLUDED)
 set(FOB_FIND_OR_BUILD_INCLUDED 1)
 
+# Sets a value to a variable (as default) if it is not already set.
+function(fob_set_default_var_value VAR_NAME DEFAULT_VAL)
+    if(NOT DEFINED ${VAR_NAME})
+        set(${VAR_NAME} ${DEFAULT_VAL} PARENT_SCOPE)
+    endif()
+endfunction(fob_set_default_var_value)
+
+# Save the current defined state and value of a variable so it can be restored
+# later using fob_pop_var
+function(fob_push_var VAR_NAME)
+    if (DEFINED ${VAR_NAME})
+        set(_push_${VAR_NAME} ${${VAR_NAME}} PARENT_SCOPE)
+    else()
+        unset(${VAR_NAME} PARENT_SCOPE)
+    endif()
+endfunction(fob_push_var)
+
+# Restore the defined state and value of a variable previously saved using
+# fob_push_var
+function(fob_pop_var VAR_NAME)
+    if (DEFINED _push_${VAR_NAME})
+        set(${VAR_NAME} ${_push_${VAR_NAME}} PARENT_SCOPE)
+    else()
+        unset(${VAR_NAME} PARENT_SCOPE)
+    endif()
+endfunction(fob_pop_var)
+
+# Compares two variables representing boolean values and sets the specified
+# output variable to ON if they both represent the same boolean value and
+# to OFF otherwise.
+function(fob_are_bools_equal OUTVAR BOOL1 BOOL2)
+    set(RESULT OFF)
+    if((BOOL1 AND BOOL2) OR ((NOT BOOL1) AND (NOT BOOL2)))
+        set(RESULT ON)
+    endif()
+    set(${OUTVAR} ${RESULT} PARENT_SCOPE)
+endfunction()
+
+# Turns a ;-separated list into a string by joining the elements of the list
+# using the $<SEMICOLON> generator expression as glue. This should be used
+# when passing a ;-separated to a shell command that expects ;-separated lists.
+# This will prevent the list to be expanded into multiple arguments on the 
+# command line.
+macro(fob_semicolon_escape_list OUT_VAR)
+    string(JOIN $<SEMICOLON> ${OUT_VAR} ${ARGN})
+endmacro(fob_semicolon_escape_list)
+
 # Get the path to the home directory of the user running cmake.
 function(fob_get_home_dir HOME_VAR)
     if (UNIX)
@@ -32,8 +79,9 @@ passed to fob_find_or_build."
 set_property(CACHE FOB_USE_SYSTEM_PACKAGES_OPTION
     PROPERTY STRINGS ALWAYS FIRST LAST NEVER)
 
-if(DEFINED $ENV{FOB_STORAGE_ROOT})
-    set(_FOB_DEFAULT_PACKAGE_ROOT $ENV{FOB_STORAGE_ROOT})
+if(ENV{FOB_STORAGE_ROOT})
+    cmake_path(CONVERT "$ENV{FOB_STORAGE_ROOT}"
+        TO_CMAKE_PATH_LIST _FOB_DEFAULT_PACKAGE_ROOT NORMALIZE)
 else()
     fob_get_home_dir(HOME)
     set(_FOB_DEFAULT_PACKAGE_ROOT "${HOME}/.FindOrBuild")
@@ -49,7 +97,34 @@ option(FOB_ENABLE_PACKAGE_RETRIEVE
 are not found in system packages or those previously built and installed by us"
     true)
 
-include(${FOB_MODULE_DIR}/CommonUtils.cmake)
+# Prepend the specified path to the PATH environment variable in the current
+# configure process. All the commands launched by execute_process will
+# inherit the new PATH value.
+function(fob_prepend_to_env_path PATH)
+    cmake_path(NATIVE_PATH PATH NORMALIZE PATH_NATIVE)
+    set(ENV{PATH} "${PATH_NATIVE};$ENV{PATH}")
+endfunction()
+
+# Call this macro within a specific compatibility checker module to declare
+# all variables that the module checks. Simply pass the names of variables 
+# to this macro. It will set or reset the compatibility flag.
+# If a non-declared variable is encountered in the requested arguments, 
+# it causes further processing of the compatibility module and 
+macro(fob_declare_compatibility_variables)
+    set(FOB_COMPATIBILITY_VARIABLES_DECLARED ON)
+    set(_DELARED_VARIABLES "${ARGN}")
+    foreach(REQUEST_VAR ${FOB_REQUEST_CONFIG_VARIABLES})
+        if(NOT (REQUEST_VAR IN_LIST _DELARED_VARIABLES))
+            message(WARNING "The requested config variable ${REQUEST_VAR} is \
+not declared by the compatibility module ${CMAKE_CURRENT_LIST_FILE}. Either \
+the compatibility file is from an older version or you are requesting a \
+nonexistent variable.")
+            set(FOB_IS_COMPATIBLE OFF)
+            # return from the compatibility module (not the macro)
+            return() 
+        endif()
+    endforeach(REQUEST_VAR)
+endmacro(fob_declare_compatibility_variables)
 
 # Get a list of compiler IDs that are binary compatible with the given 
 # compiler ID. This compatibility mapping is speculative and based on little 
@@ -91,15 +166,21 @@ function(_does_cfg_dir_match_args OUTVAR MODULE_NAME CFG_DIR CFG_ARGS)
         set(${OUTVAR} ${FOB_IS_COMPATIBLE} PARENT_SCOPE)
         return()
     endif()
+    set(FOB_REQUEST_CONFIG_VARIABLES)
     foreach(REQUIRED_CFG ${CFG_ARGS})
         set(ARG_REGEX "^-D\\s*([a-zA-Z_][0-9a-zA-Z_]*)=(.*)")
         if(REQUIRED_CFG MATCHES ${ARG_REGEX})
             set(REQUIRED_ARG_NAME ${CMAKE_MATCH_1})
             set(REQUIRED_ARG_VALUE ${CMAKE_MATCH_2})
             set(${REQUIRED_ARG_NAME} ${REQUIRED_ARG_VALUE})
+            list(APPEND FOB_REQUEST_CONFIG_VARIABLES ${REQUIRED_ARG_NAME})
         endif()
     endforeach(REQUIRED_CFG)
+    set(FOB_COMPATIBILITY_VARIABLES_DECLARED OFF)
     include(${CFG_DIR}/compatibility/${MODULE_NAME}.cmake OPTIONAL)
+    if(NOT FOB_COMPATIBILITY_VARIABLES_DECLARED)
+        set(FOB_IS_COMPATIBLE ${FOB_COMPATIBILITY_VARIABLES_DECLARED})
+    endif()
     set(${OUTVAR} ${FOB_IS_COMPATIBLE} PARENT_SCOPE)
 endfunction(_does_cfg_dir_match_args)
 
@@ -159,11 +240,27 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     _get_all_paths_for_package_in_fob_storage(
         ${PACKAGE_NAME} PKG_PATHS ${_FOB_CFG_ARGS_SETTING})
 
-        find_package(${PACKAGE_NAME}
-        ${_FFPOO_UNPARSED_ARGUMENTS} NO_DEFAULT_PATH PATHS ${PKG_PATHS})
+    list(PREPEND CMAKE_PREFIX_PATH ${PKG_PATHS})
+    list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
     
-    fob_pop_var(CMAKE_FIND_FRAMEWORK)
+    fob_push_var(CMAKE_FIND_USE_PACKAGE_ROOT_PATH)
+    fob_push_var(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH)
+    fob_push_var(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH)
+    fob_push_var(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH)
+    
+    set(CMAKE_FIND_USE_PACKAGE_ROOT_PATH OFF)
+    set(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH OFF)
+    set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH OFF)
+    set(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH OFF)
+
+    find_package(${PACKAGE_NAME} ${_FFPOO_UNPARSED_ARGUMENTS})
+    
+    fob_pop_var(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH)
+    fob_pop_var(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH)
+    fob_pop_var(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH)
+    fob_pop_var(CMAKE_FIND_USE_PACKAGE_ROOT_PATH)
     fob_pop_var(CMAKE_FIND_APPBUNDLE)
+    fob_pop_var(CMAKE_FIND_FRAMEWORK)
 endmacro(_fob_find_package_ours_only)
 
 # Performs the first attempt at finding the package specified by the given 
@@ -253,7 +350,7 @@ endmacro(_fob_find_in_existing_packages)
 #
 # The generated cache preloader file can be passed to the cmake command using:
 # cmake -C <initial-cache> ...
-function(_fob_convert_cmdln_cache_args_to_cache_preloader
+function(fob_convert_cmdln_cache_args_to_cache_preloader
     CACHE_PRELOADER_FILE CACHE_ARGS)
     file(WRITE ${CACHE_PRELOADER_FILE} "")
 
@@ -299,7 +396,7 @@ function(_fob_convert_cmdln_cache_args_to_cache_preloader
                 set(_cache_arg_type STRING)
             endif (_matched_arg_typed)
             set(_setter_line_ending " CACHE ${_cache_arg_type} \
-\"Generated by _fob_convert_cmdln_cache_args_to_cache_preloader\" FORCE)\n")
+\"Generated by fob_convert_cmdln_cache_args_to_cache_preloader\" FORCE)\n")
 
             # Open new entry definition
             file(APPEND ${CACHE_PRELOADER_FILE}
@@ -316,7 +413,7 @@ function(_fob_convert_cmdln_cache_args_to_cache_preloader
         file(APPEND ${CACHE_PRELOADER_FILE} ${_setter_line_ending})
     endif (_setter_line_ending)
 
-endfunction(_fob_convert_cmdln_cache_args_to_cache_preloader)
+endfunction(fob_convert_cmdln_cache_args_to_cache_preloader)
 
 # Use the _fob_include_and_build_in_cmake_time function to build the
 # specified targets within one or more CMake files during processing of
@@ -370,12 +467,12 @@ function(_fob_include_and_build_in_cmake_time)
 "At least one module is needed by _fob_include_and_build_in_cmake_time")
         return()
     endif()
-
+    
     set(LIST_FILE_CONTENTS
 "cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 ${PROJECT_LINE}
-set(CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
-include(\${FOB_MODULE_DIR}/PackageUtils.cmake)
+list(APPEND CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
+include(PackageUtils)
 foreach(MOD \"${ARG_MODULES}\")
     include(\${MOD})
 endforeach(MOD)
@@ -386,7 +483,7 @@ endforeach(MOD)
     endif(NOT ARG_PROJ_PATH)
     file(WRITE ${ARG_PROJ_PATH}/CMakeLists.txt ${LIST_FILE_CONTENTS})
 
-    _fob_convert_cmdln_cache_args_to_cache_preloader(
+    fob_convert_cmdln_cache_args_to_cache_preloader(
         ${ARG_PROJ_PATH}/InitCache.txt "${ARG_CACHE_ARGS}")
 
     set(_config_command ${CMAKE_COMMAND} 
@@ -400,6 +497,9 @@ endforeach(MOD)
     if(CMAKE_GENERATOR_PLATFORM)
         list(APPEND _config_command -T ${CMAKE_GENERATOR_TOOLSET})
     endif(CMAKE_GENERATOR_PLATFORM)
+
+    cmake_path(GET CMAKE_COMMAND PARENT_PATH PATH_TO_CMAKE_BIN_DIR)
+    fob_prepend_to_env_path(${PATH_TO_CMAKE_BIN_DIR})
 
     execute_process(COMMAND ${_config_command})
     set(BUILD_DIR ${ARG_PROJ_PATH}/build)
@@ -423,6 +523,22 @@ function(_fob_is_valid_version OUT_IS_VERSION IN_STRING)
         unset(${OUT_IS_VERSION} PARENT_SCOPE)
     endif()
 endfunction(_fob_is_valid_version)
+
+# Find the retriever module for the requested package within the current
+# CMAKE_MODULE_PATH and if not found, download the retriever module.
+# It stores the path to the module in the specified variable.
+function(_find_or_download_retriever_module MODULE_PATH_OUT_VAR PACKAGE_NAME)
+    foreach(MOD_PATH ${CMAKE_MODULE_PATH})
+        if(EXISTS ${MOD_PATH}/retrievers/${PACKAGE_NAME}.cmake)
+            set(${MODULE_PATH_OUT_VAR} 
+                ${MOD_PATH}/retrievers/${PACKAGE_NAME}.cmake PARENT_SCOPE)
+            return()
+        endif()
+    endforeach(MOD_PATH)
+    fob_download_fob_file_if_not_exists(
+        cmake/retrievers/${PACKAGE_NAME}.cmake FILE_PATH)
+    set(${MODULE_PATH_OUT_VAR} ${FILE_PATH} PARENT_SCOPE)
+endfunction(_find_or_download_retriever_module)
 
 # Start download, build, and installation of the package specified by 
 # PACKAGE_NAME, version (the argument immediately after name), and an 
@@ -448,20 +564,22 @@ function(_fob_download_build_install_package PACKAGE_NAME)
         endif()
     endif()
 
-    _download_fob_module_if_not_exists(retrievers/${PACKAGE_NAME})
+    _find_or_download_retriever_module(RETRIEVER_MODULE_PATH ${PACKAGE_NAME})
 
     _fob_include_and_build_in_cmake_time(
         PROJ_NAME Retrieve${PACKAGE_NAME}
-        MODULES ${FOB_MODULE_DIR}/retrievers/${PACKAGE_NAME}.cmake
+        MODULES ${RETRIEVER_MODULE_PATH}
         PROJ_PATH ${EXT_PROJ_PATH}
         CACHE_ARGS
-            -DFOB_MODULE_DIR=${FOB_MODULE_DIR}
-            -DFOB_STORAGE_ROOT=${FOB_STORAGE_ROOT}
+            -DFOB_MODULE_DIR:PATH=${FOB_MODULE_DIR}
+            -DFOB_STORAGE_ROOT:PATH=${FOB_STORAGE_ROOT}
+            "-DCMAKE_MODULE_PATH:STRING=${CMAKE_MODULE_PATH}"
             "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
             "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
             "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
             -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
             "-DCMAKE_CONFIGURATION_TYPES:STRING=${CMAKE_CONFIGURATION_TYPES}"
+            -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             ${REQUESTED_VER_CACHE_SETTING}
             ${ARG_CFG_ARGS}
     )

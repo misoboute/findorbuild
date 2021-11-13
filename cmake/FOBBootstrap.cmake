@@ -17,6 +17,8 @@ set(FOB_MODULE_DIR_URL ${FOB_ROOT_DIR_URL}/cmake)
 set(FOB_BINARY_ROOT_DIR ${CMAKE_BINARY_DIR}/fob)
 set(FOB_MODULE_DIR ${FOB_BINARY_ROOT_DIR}/cmake)
 
+list(APPEND CMAKE_MODULE_PATH ${FOB_MODULE_DIR})
+
 # Downloads a FOB module from the upstream repository if it hasn't already 
 # been downloaded.
 function(_download_fob_module_if_not_exists MOD_NAME)
@@ -34,10 +36,7 @@ function(_download_fob_module_if_not_exists MOD_NAME)
     endif()
 endfunction(_download_fob_module_if_not_exists)
 
-_download_fob_module_if_not_exists(CommonUtils) 
 _download_fob_module_if_not_exists(FindOrBuild) 
 _download_fob_module_if_not_exists(PackageUtils) 
 
-if(EXISTS ${FOB_MODULE_DIR}/FindOrBuild.cmake)
-    include(${FOB_MODULE_DIR}/FindOrBuild.cmake)
-endif()
+include(FindOrBuild)
