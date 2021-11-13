@@ -26,22 +26,13 @@ endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
 set(BOOST_SRC_DIR ${SOURCE_DIR}/Source/boost)
 if(WIN32)
-    # The bootstrap must be run from an MSVS developer command prompt.
-    # We shall set the environment instead using vcvarsall in a batch
-    # file.
-    # VS 2017 vcvarsall changes directory to a different path and the build
-    # is messed up. Must CD to the sources directory after vcvarsall.
-    # https://stackoverflow.com/questions/46681881/visual-studio-2017-developer-command-prompt-switches-current-directory?rq=1
-    fob_find_vcvarsall(VCVARSALL STRING REQUIRED)
-    file(TO_NATIVE_PATH ${BOOST_SRC_DIR} BOOST_SRC_DIR_NATIVE)
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/boost_boostrap.bat
-"SET VSCMD_START_DIR=${BOOST_SRC_DIR_NATIVE}\\boost\\tools\\build\\src\\engine
-${VCVARSALL}
-CD \"${BOOST_SRC_DIR_NATIVE}\"
-bootstrap.bat"
+    set(BOOST_BOOTSTRAP_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/boost_boostrap.bat)
+    fob_run_under_vcdevcommand_env(
+        ${BOOST_BOOTSTRAP_COMMAND}
+        "bootstrap.bat"
+        WORKING_DIR ${BOOST_SRC_DIR}
+        VSCMD_START_DIR ${BOOST_SRC_DIR}/boost/tools/build/src/engine
     )
-    set(BOOST_BOOTSTRAP_COMMAND
-        ${CMAKE_CURRENT_BINARY_DIR}/boost_boostrap.bat)
     set(BOOST_B2_COMMAND b2.exe)
 elseif(UNIX)
     set(BOOST_BOOTSTRAP_COMMAND ./bootstrap.sh)
