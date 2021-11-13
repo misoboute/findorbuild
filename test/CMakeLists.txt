@@ -16,19 +16,9 @@ fob_find_or_build(GTest 1.11 REQUIRED
         -DBUILD_SHARED_LIBS=OFF
         -Dgtest_force_shared_crt=OFF
 )
-if(NOT GTest_FOUND)
-    message(FATAL_ERROR "GTest NOT FOUND")
-endif()
 
 fob_find_or_build(Boost 1.77 REQUIRED)
-if(NOT Boost_FOUND)
-    message(FATAL_ERROR "Boost NOT FOUND")
-endif()
 
 fob_find_or_build(Perl REQUIRED)
 
 fob_find_or_build(Qt6 REQUIRED)
-if(NOT Qt6_FOUND)
-    message(FATAL_ERROR "Boost NOT FOUND")
-endif()
-
