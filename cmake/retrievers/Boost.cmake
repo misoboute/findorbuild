@@ -24,6 +24,10 @@ else(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(BOOST_ADDRESS_MODEL 32)
 endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
+fob_setup_extproj_dirs(Boost ${FOB_REQUESTED_VERSION})
+
+fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Boost)
+
 set(BOOST_SRC_DIR ${SOURCE_DIR}/Source/boost)
 if(WIN32)
     set(BOOST_BOOTSTRAP_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/boost_boostrap.bat)
@@ -38,10 +42,6 @@ elseif(UNIX)
     set(BOOST_BOOTSTRAP_COMMAND ./bootstrap.sh)
     set(BOOST_B2_COMMAND ./b2)
 endif(WIN32)
-
-fob_setup_extproj_dirs(Boost ${FOB_REQUESTED_VERSION})
-
-fob_write_specific_compatibility_file(${CONFIG_ROOT_DIR} Boost)
 
 ExternalProject_Add(
     FOB_boost
@@ -78,7 +78,9 @@ set(IBM_COMPILERS XL XLClang VisualAge zOS)
 set(INTEL_COMPILERS Intel IntelLLVM)
 
 if(MSVC)
-    if(MSVC_TOOLSET_VERSION STREQUAL 142)
+    if(MSVC_TOOLSET_VERSION STREQUAL 143)
+        set(BOOST_BUILD_TOOLSET msvc-14.3)
+    elseif(MSVC_TOOLSET_VERSION STREQUAL 142)
         set(BOOST_BUILD_TOOLSET msvc-14.2)
     elseif(MSVC_TOOLSET_VERSION STREQUAL 141)
         set(BOOST_BUILD_TOOLSET msvc-14.1)
