@@ -472,7 +472,7 @@ function(_fob_include_and_build_in_cmake_time)
 "cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 ${PROJECT_LINE}
 list(APPEND CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
-include(PackageUtils)
+include(FOBPackageUtils)
 foreach(MOD \"${ARG_MODULES}\")
     include(\${MOD})
 endforeach(MOD)

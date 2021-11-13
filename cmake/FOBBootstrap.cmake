@@ -37,6 +37,6 @@ function(_download_fob_module_if_not_exists MOD_NAME)
 endfunction(_download_fob_module_if_not_exists)
 
 _download_fob_module_if_not_exists(FindOrBuild) 
-_download_fob_module_if_not_exists(PackageUtils) 
+_download_fob_module_if_not_exists(FOBPackageUtils) 
 
 include(FindOrBuild)
