@@ -64,8 +64,6 @@ cmake_path(GET Perl_BIN_DIR PARENT_PATH Perl_ROOT)
 list(APPEND CMAKE_PREFIX_PATH ${Perl_ROOT})
 
 set(CACHE_PRELOADER_ARGS
-    -DCMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
-    -DCMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
     -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
     -DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}
     -DCMAKE_PROGRAM_PATH=${Perl_BIN_DIR}
@@ -75,6 +73,23 @@ fob_convert_cmdln_cache_args_to_cache_preloader(
     ${BINARY_DIR}/CacheInit.txt "${CACHE_PRELOADER_ARGS}")
 
 list(APPEND CONFIGURE_OPTIONS -- -C ${BINARY_DIR}/CacheInit.txt)
+
+if(MSVC)
+    if(MSVC_TOOLSET_VERSION VERSION_LESS 142)
+        message(FATAL_ERROR 
+            "Building Qt6 requires Microsoft Visual Studio 2019 or newer.")
+    endif()
+    set(QT6_CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/configure_cmd.bat)
+    cmake_path(NATIVE_PATH SOURCE_DIR NORMALIZE SOURCE_DIR_NATIVE)
+    fob_run_under_vcdevcommand_env(
+        ${QT6_CONFIGURE_COMMAND}
+        "${SOURCE_DIR_NATIVE}\\configure.bat %*"
+        WORKING_DIR ${BINARY_DIR}
+        VSCMD_START_DIR ${BINARY_DIR}
+    )
+else()
+    set(QT6_CONFIGURE_COMMAND <SOURCE_DIR>/configure)
+endif()
 
 ExternalProject_Add(
     FOB_Qt6
@@ -91,9 +106,8 @@ ExternalProject_Add(
     STAMP_DIR ${STAMP_DIR}
     LOG_DIR ${LOG_DIR}
     INSTALL_DIR ${INSTALL_DIR}
-    CONFIGURE_COMMAND 
-        <SOURCE_DIR>/configure$<$<BOOL:${WIN32}>:.bat> ${CONFIGURE_OPTIONS}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
+    CONFIGURE_COMMAND ${QT6_CONFIGURE_COMMAND} ${CONFIGURE_OPTIONS}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --parallel
     INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR>
 )
 
