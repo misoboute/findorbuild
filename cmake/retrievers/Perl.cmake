@@ -39,18 +39,16 @@ set(VERSION_GIT_TAG v${FOB_REQUESTED_VERSION})
 fob_setup_extproj_dirs(Perl ${FOB_REQUESTED_VERSION})
 
 if(MSVC)
+    cmake_path(SET MAKE_DIR ${SOURCE_DIR}/win32)
+    cmake_path(SET MAKEFILE_PATH ${MAKE_DIR}/Makefile)
     set(PERL_CONFIG_CMD ${CMAKE_COMMAND}
         -DMAKEFILE_PATH=${MAKEFILE_PATH} -DINSTALL_DIR=<INSTALL_DIR>
         -DMSVC_TOOLSET_VERSION=${MSVC_TOOLSET_VERSION}
         -P ${CMAKE_CURRENT_LIST_FILE}
     )
     set(MAKE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/make_run.bat)
-    fob_run_under_vcdevcommand_env(
-        ${MAKE_COMMAND}
-        "nmake %1"
-        WORKING_DIR ${SOURCE_DIR}/win32
-        VSCMD_START_DIR ${SOURCE_DIR}/win32
-    )
+    fob_run_under_vcdevcommand_env(${MAKE_COMMAND} "nmake %1"
+        WORKING_DIR ${MAKE_DIR} VSCMD_START_DIR ${MAKE_DIR})
 elseif(UNIX)
     set(PERL_CONFIG_CMD <SOURCE_DIR>/Configure -des -Dprefix=<INSTALL_DIR>)
     set(MAKE_COMMAND ${CMAKE_MAKE_PROGRAM})
