@@ -240,13 +240,27 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     _get_all_paths_for_package_in_fob_storage(
         ${PACKAGE_NAME} PKG_PATHS ${_FOB_CFG_ARGS_SETTING})
 
-    list(APPEND CMAKE_PREFIX_PATH ${PKG_PATHS})
+    list(PREPEND CMAKE_PREFIX_PATH ${PKG_PATHS})
     list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
-    find_package(${PACKAGE_NAME}
-        ${_FFPOO_UNPARSED_ARGUMENTS} PATHS ${PKG_PATHS})
     
-    fob_pop_var(CMAKE_FIND_FRAMEWORK)
+    fob_push_var(CMAKE_FIND_USE_PACKAGE_ROOT_PATH)
+    fob_push_var(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH)
+    fob_push_var(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH)
+    fob_push_var(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH)
+    
+    set(CMAKE_FIND_USE_PACKAGE_ROOT_PATH OFF)
+    set(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH OFF)
+    set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH OFF)
+    set(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH OFF)
+
+    find_package(${PACKAGE_NAME} ${_FFPOO_UNPARSED_ARGUMENTS})
+    
+    fob_pop_var(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH)
+    fob_pop_var(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH)
+    fob_pop_var(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH)
+    fob_pop_var(CMAKE_FIND_USE_PACKAGE_ROOT_PATH)
     fob_pop_var(CMAKE_FIND_APPBUNDLE)
+    fob_pop_var(CMAKE_FIND_FRAMEWORK)
 endmacro(_fob_find_package_ours_only)
 
 # Performs the first attempt at finding the package specified by the given 
