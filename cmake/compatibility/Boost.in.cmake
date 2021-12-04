@@ -3,9 +3,6 @@
 # fob_find_or_build. It is expected to set the variable FOB_IS_COMPATIBLE to 
 # true or false.
 
-# Presume compatibility at the beginning
-set(FOB_IS_COMPATIBLE true)
-
 fob_declare_compatibility_variables(
     BOOST_VARIANT BOOST_LINK BOOST_THREADING BOOST_RUNTIME_LINK)
 

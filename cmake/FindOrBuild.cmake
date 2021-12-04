@@ -111,6 +111,10 @@ endfunction()
 # If a non-declared variable is encountered in the requested arguments, 
 # it causes further processing of the compatibility module and 
 macro(fob_declare_compatibility_variables)
+    if(NOT DEFINED FOB_IS_COMPATIBLE)
+        # Presume compatibility at the beginning
+        set(FOB_IS_COMPATIBLE ON)
+    endif()
     set(FOB_COMPATIBILITY_VARIABLES_DECLARED ON)
     set(_DELARED_VARIABLES "${ARGN}")
     foreach(REQUEST_VAR ${FOB_REQUEST_CONFIG_VARIABLES})
@@ -472,7 +476,7 @@ function(_fob_include_and_build_in_cmake_time)
 "cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 ${PROJECT_LINE}
 list(APPEND CMAKE_MODULE_PATH \"${FOB_MODULE_DIR}\")
-include(PackageUtils)
+include(FOBPackageUtils)
 foreach(MOD \"${ARG_MODULES}\")
     include(\${MOD})
 endforeach(MOD)
