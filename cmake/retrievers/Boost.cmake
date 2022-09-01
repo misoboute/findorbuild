@@ -47,6 +47,7 @@ ExternalProject_Add(
     FOB_boost
     GIT_REPOSITORY https://github.com/boostorg/boost
     GIT_TAG ${VERSION_GIT_TAG}
+    GIT_SHALLOW true
     GIT_PROGRESS true
     DOWNLOAD_DIR ${DOWNLOAD_DIR}
     SOURCE_DIR ${SOURCE_DIR}

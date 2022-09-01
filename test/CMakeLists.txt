@@ -20,5 +20,5 @@ fob_find_or_build(GTest 1.11 REQUIRED
 fob_find_or_build(Boost 1.77 REQUIRED)
 
 fob_find_or_build(Perl REQUIRED USE_SYSTEM_PACKAGES NEVER)
-
+fob_find_or_build(OpenSSL REQUIRED USE_SYSTEM_PACKAGES NEVER)
 fob_find_or_build(Qt6 REQUIRED)

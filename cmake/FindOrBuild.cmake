@@ -109,11 +109,12 @@ endfunction()
 # all variables that the module checks. Simply pass the names of variables 
 # to this macro. It will set or reset the compatibility flag.
 # If a non-declared variable is encountered in the requested arguments, 
-# it causes further processing of the compatibility module and 
+# it causes further processing of the compatibility module and marks the
+# package as incompatible by setting FOB_IS_COMPATIBLE to false.
 macro(fob_declare_compatibility_variables)
-    if(NOT DEFINED FOB_IS_COMPATIBLE)
-        # Presume compatibility at the beginning
-        set(FOB_IS_COMPATIBLE ON)
+if(NOT DEFINED FOB_IS_COMPATIBLE)
+# Presume compatibility at the beginning
+    set(FOB_IS_COMPATIBLE ON)
     endif()
     set(FOB_COMPATIBILITY_VARIABLES_DECLARED ON)
     set(_DELARED_VARIABLES "${ARGN}")
@@ -183,6 +184,8 @@ function(_does_cfg_dir_match_args OUTVAR MODULE_NAME CFG_DIR CFG_ARGS)
     set(FOB_COMPATIBILITY_VARIABLES_DECLARED OFF)
     include(${CFG_DIR}/compatibility/${MODULE_NAME}.cmake OPTIONAL)
     if(NOT FOB_COMPATIBILITY_VARIABLES_DECLARED)
+        message(WARNING "Specific compatibility checker for module \
+            ${MODULE_NAME} failed to declare any config variables.")
         set(FOB_IS_COMPATIBLE ${FOB_COMPATIBILITY_VARIABLES_DECLARED})
     endif()
     set(${OUTVAR} ${FOB_IS_COMPATIBLE} PARENT_SCOPE)
@@ -244,15 +247,14 @@ macro(_fob_find_package_ours_only PACKAGE_NAME FIND_ARGS)
     _get_all_paths_for_package_in_fob_storage(
         ${PACKAGE_NAME} PKG_PATHS ${_FOB_CFG_ARGS_SETTING})
 
-    list(PREPEND CMAKE_PREFIX_PATH ${PKG_PATHS})
-    list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
+    set(${PACKAGE_NAME}_ROOT ${PKG_PATHS})
     
     fob_push_var(CMAKE_FIND_USE_PACKAGE_ROOT_PATH)
     fob_push_var(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH)
     fob_push_var(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH)
     fob_push_var(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH)
     
-    set(CMAKE_FIND_USE_PACKAGE_ROOT_PATH OFF)
+    set(CMAKE_FIND_USE_PACKAGE_ROOT_PATH ON)
     set(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH OFF)
     set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH OFF)
     set(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH OFF)
